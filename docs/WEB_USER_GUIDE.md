@@ -41,7 +41,7 @@ All processing happens locally in your browser. Nothing is uploaded to a server,
 所有处理均在浏览器本地完成，文件不会上传或存储。
 
 ## Two delivery entry points / 两个交付入口
-- **Web**: this site (real public URL).
+- **Web**: https://lixinjiang-ai.github.io/ai-file-organizer-web/ (real public URL, free, no install)
 - **macOS**: `AI文件整理助手_Mac_arm64.dmg` — run offline on Apple Silicon Macs.
 
 Both are entry points of the same product.
