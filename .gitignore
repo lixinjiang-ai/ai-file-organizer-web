@@ -9,3 +9,6 @@ next-env.d.ts
 /_tgzs
 /_nmcache
 lint_full.txt
+
+# lock 文件不入库（避免跨平台原生二进制缺失导致 CI 构建失败）
+package-lock.json
