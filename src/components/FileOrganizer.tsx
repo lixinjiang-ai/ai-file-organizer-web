@@ -7,6 +7,7 @@ import {
   categoryOf,
   humanSize,
   CATEGORIES,
+  CATEGORY_LABELS,
   Category,
 } from "@/lib/categories";
 
@@ -57,14 +58,14 @@ export function FileOrganizer() {
       const used = new Set<string>();
       for (const it of items) {
         let name = it.file.name;
-        let path = `${it.category}/${name}`;
+        let path = `${CATEGORY_LABELS[it.category]}/${name}`;
         let i = 1;
         while (used.has(path)) {
           const dot = name.lastIndexOf(".");
           const base = dot > 0 ? name.slice(0, dot) : name;
           const ext = dot > 0 ? name.slice(dot) : "";
           name = `${base}_${i}${ext}`;
-          path = `${it.category}/${name}`;
+          path = `${CATEGORY_LABELS[it.category]}/${name}`;
           i++;
         }
         used.add(path);
@@ -160,7 +161,7 @@ export function FileOrganizer() {
               >
                 <div className="flex items-center justify-between bg-slate-50 px-4 py-2">
                   <span className="font-medium text-slate-700">
-                    📁 {c}
+                    📁 {CATEGORY_LABELS[c]}
                   </span>
                   <span className="text-xs text-slate-400">
                     {grouped[c].length}

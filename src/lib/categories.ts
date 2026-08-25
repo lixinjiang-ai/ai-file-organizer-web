@@ -21,6 +21,19 @@ export const CATEGORIES: Category[] = [
   "Other",
 ];
 
+// 中文分类标签（用于界面显示与 ZIP 文件夹名）
+export const CATEGORY_LABELS: Record<Category, string> = {
+  Documents: "文档",
+  Spreadsheets: "表格",
+  Presentations: "演示",
+  Images: "图片",
+  Archives: "压缩包",
+  Audio: "音频",
+  Video: "视频",
+  Code: "代码",
+  Other: "其他",
+};
+
 const EXT_MAP: Record<string, Category> = {
   pdf: "Documents",
   doc: "Documents",
