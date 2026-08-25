@@ -12,7 +12,7 @@ export function OcrTool() {
   const [preview, setPreview] = useState<string>("");
   const [text, setText] = useState<string>("");
   const [status, setStatus] = useState<Status>("idle");
-  const [ocrLang, setOcrLang] = useState<OcrLang>("eng");
+  const [ocrLang, setOcrLang] = useState<OcrLang>("chi_sim");
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -48,7 +48,7 @@ export function OcrTool() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "ocr-result.txt";
+    a.download = "文字识别结果.txt";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -104,8 +104,8 @@ export function OcrTool() {
                 onChange={(e) => setOcrLang(e.target.value as OcrLang)}
                 className="ml-2 rounded-lg border border-slate-300 px-2 py-1.5"
               >
-                <option value="eng">English</option>
-                <option value="chi_sim">中文</option>
+                <option value="eng">英文</option>
+                <option value="chi_sim">中文（简体）</option>
               </select>
             </label>
             <button

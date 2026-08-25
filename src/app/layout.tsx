@@ -4,9 +4,9 @@ import { I18nProvider } from "@/lib/i18n";
 import { Nav } from "@/components/Nav";
 
 export const metadata: Metadata = {
-  title: "AI File Organizer",
+  title: "AI 文件整理助手",
   description:
-    "Organize your files faster with AI-powered tools. Runs entirely in your browser.",
+    "在浏览器中更快整理你的文件。无需安装，本地处理，保护隐私。",
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <body>
         <I18nProvider>
           <div className="flex min-h-screen flex-col">
@@ -24,8 +24,8 @@ export default function RootLayout({
               {children}
             </main>
             <footer className="border-t border-slate-200 bg-white px-4 py-4 text-center text-xs text-slate-500">
-              AI File Organizer ·{" "}
-              <span>Use files locally in your browser. Nothing is uploaded.</span>
+              AI 文件整理助手 ·{" "}
+              <span>文件在浏览器本地处理，不会上传。</span>
             </footer>
           </div>
         </I18nProvider>

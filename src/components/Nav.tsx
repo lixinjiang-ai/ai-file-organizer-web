@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 
 export function Nav() {
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const pathname = usePathname();
 
   const links = [
@@ -20,7 +20,7 @@ export function Nav() {
       <nav className="mx-auto flex w-full max-w-5xl items-center gap-1 px-4 py-3">
         <Link href="/" className="mr-2 flex items-center gap-2 font-bold text-[#1e5eba]">
           <span className="text-lg">🗂️</span>
-          <span className="hidden sm:inline">AI File Organizer</span>
+          <span className="hidden sm:inline">AI 文件整理助手</span>
         </Link>
         <div className="flex flex-1 items-center gap-1">
           {links.map((l) => {
@@ -40,13 +40,6 @@ export function Nav() {
             );
           })}
         </div>
-        <button
-          onClick={() => setLang(lang === "en" ? "zh" : "en")}
-          className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
-          aria-label={t("lang.label")}
-        >
-          {lang === "en" ? "中文" : "EN"}
-        </button>
       </nav>
     </header>
   );

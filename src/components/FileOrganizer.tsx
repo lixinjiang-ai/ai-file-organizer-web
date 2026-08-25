@@ -71,7 +71,7 @@ export function FileOrganizer() {
         zip.file(path, it.file);
       }
       const blob = await zip.generateAsync({ type: "blob" });
-      downloadBlob(blob, "AI-File-Organizer.zip");
+      downloadBlob(blob, "AI文件整理助手_整理结果.zip");
       setStatus("done");
     } catch {
       setStatus("error");

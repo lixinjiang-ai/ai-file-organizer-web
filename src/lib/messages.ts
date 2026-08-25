@@ -1,69 +1,8 @@
-export type Lang = "en" | "zh";
+export type Lang = "zh";
 
 type Dict = Record<string, string>;
 
 export const messages: Record<Lang, Dict> = {
-  en: {
-    "nav.home": "Home",
-    "nav.organize": "File Organizer",
-    "nav.ocr": "OCR",
-    "nav.help": "Help",
-    "lang.label": "Language",
-
-    "home.title": "AI File Organizer",
-    "home.subtitle": "Organize your files faster with AI-powered tools.",
-    "home.cta": "Start Organizing",
-    "home.tagline": "Upload, sort, and download — entirely in your browser.",
-    "home.local": "Files are processed locally in your browser. Nothing is uploaded to a server.",
-    "home.feat1.title": "Smart categorization",
-    "home.feat1.desc": "Files are sorted into folders by type automatically.",
-    "home.feat2.title": "One-click ZIP",
-    "home.feat2.desc": "Download everything as a tidy, organized ZIP archive.",
-    "home.feat3.title": "Privacy first",
-    "home.feat3.desc": "No account, no upload, no database. Your files stay yours.",
-
-    "organize.title": "File Organizer",
-    "organize.drop": "Drag & drop files here, or click to select",
-    "organize.hint": "Multiple files supported. Your original files are never modified.",
-    "organize.files": "files",
-    "organize.category": "Category",
-    "organize.size": "Size",
-    "organize.preview": "Preview",
-    "organize.organizeBtn": "Organize & Download ZIP",
-    "organize.empty": "No files yet. Add some to get started.",
-    "organize.processing": "Organizing…",
-    "organize.done": "Your ZIP is ready.",
-    "organize.error": "Something went wrong while building the ZIP.",
-    "organize.local": "Files are processed locally in your browser whenever possible.",
-    "organize.byCategory": "Files by category",
-    "organize.download": "Download",
-    "organize.remove": "Remove",
-
-    "ocr.title": "OCR",
-    "ocr.drop": "Upload an image to extract text",
-    "ocr.run": "Extract Text",
-    "ocr.running": "Recognizing…",
-    "ocr.result": "Extracted text",
-    "ocr.copy": "Copy",
-    "ocr.copied": "Copied!",
-    "ocr.download": "Download .txt",
-    "ocr.empty": "No image selected.",
-    "ocr.note": "OCR runs entirely in your browser with Tesseract.js. Image-only PDF support is planned.",
-    "ocr.error": "OCR failed. Try another image.",
-    "ocr.lang": "Language",
-
-    "help.title": "Help & Instructions",
-    "help.intro": "AI File Organizer Web is a free tool to sort and package your files. Everything runs in your browser.",
-    "help.step1": "Open File Organizer and add your files.",
-    "help.step2": "Review the auto-generated categories.",
-    "help.step3": "Click “Organize & Download ZIP” to get a sorted archive.",
-    "help.privacy": "Your files are processed locally and are never uploaded or stored.",
-    "help.mac.title": "Desktop version (macOS)",
-    "help.mac.desc": "Prefer a native app? Get AI文件整理助手_Mac_arm64.dmg and run it offline on your Mac.",
-    "help.footer": "Web version and macOS version are two entry points of the same product.",
-
-    "footer.note": "Processed locally in your browser. No files are uploaded.",
-  },
   zh: {
     "nav.home": "首页",
     "nav.organize": "文件整理",
