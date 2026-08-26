@@ -57,8 +57,8 @@ export function localClassify(
     png: { l1: "图片素材", l2: "PNG图片", l3: "按类型", weight: 0.70 },
   };
 
-  let bestRule = rules.find((r) => r.pattern.test(lower)) || rules.find((r) => r.pattern.test(contentExcerpt ?? ""));
-  let extRule = extRules[ext];
+  const bestRule = rules.find((r) => r.pattern.test(lower)) || rules.find((r) => r.pattern.test(contentExcerpt ?? ""));
+  const extRule = extRules[ext];
 
   if (bestRule && extRule) {
     if (bestRule.weight > extRule.weight) {

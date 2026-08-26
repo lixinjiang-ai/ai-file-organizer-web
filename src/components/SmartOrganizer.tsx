@@ -173,9 +173,8 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
         <input
           ref={inputRef}
           type="file"
-          // @ts-ignore - webkitdirectory is browser-specific
+          // @ts-expect-error - webkitdirectory is browser-specific
           webkitdirectory=""
-          // @ts-ignore - directory is browser-specific
           directory=""
           multiple
           className="hidden"

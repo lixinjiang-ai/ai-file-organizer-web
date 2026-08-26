@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { buildDirectoryTree, extractFilePaths, getFileName, getDirectoryPath } from "../src/lib/directoryTree";
+import { buildDirectoryTree, extractFilePaths } from "../src/lib/directoryTree";
 import { localClassify, batchLocalClassify } from "../src/lib/classifier";
 import { validateTargetPath, validateClassificationIndex, makeUniquePath } from "../src/lib/pathValidator";
 import { smartClassify } from "../src/lib/smartOrganizer";

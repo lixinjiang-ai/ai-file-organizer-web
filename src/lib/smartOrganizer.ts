@@ -4,7 +4,7 @@
  * 整合本地规则分类 + AI 分类 + 路径验证
  */
 
-import { localClassify, batchLocalClassify } from "./classifier";
+import { batchLocalClassify } from "./classifier";
 import { aiClassify } from "./aiClassifier";
 import { validateTargetPath, validateClassificationIndex, makeUniquePath } from "./pathValidator";
 import type { ClassifiedFile, ClassificationResult, DirectoryNode } from "./directoryTree";
