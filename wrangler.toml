@@ -1,0 +1,14 @@
+name = "agnes-proxy"
+main = "src/worker/agnes-proxy.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables (not secrets)
+[vars]
+AGNES_BASE_URL = "https://api.agnes-ai.cn/v1"
+AGNES_MODEL = "agnes-2.5-flash"
+
+# Routes (optional - uncomment if you want custom domain)
+# routes = [
+#   { pattern = "agnes-proxy.lixinjiang.workers.dev", zone_id = "YOUR_ZONE_ID" }
+# ]
