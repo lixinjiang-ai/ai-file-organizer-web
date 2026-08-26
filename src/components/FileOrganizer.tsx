@@ -69,12 +69,19 @@ export function FileOrganizer() {
           i++;
         }
         used.add(path);
-        zip.file(path, it.file);
+        // 显式读取文件字节，避免依赖 JSZip 内部的 Blob/File 类型探测。
+        // 直接传入 File 时，部分打包/浏览器环境下 JSZip 的 `data instanceof Blob`
+        // 判定会失败并抛出 "Can't read the data of ..."，被静默捕获后表现为
+        // 「生成 ZIP 时出错」。改为 Uint8Array 后该路径在所有环境下均稳定可用。
+        const buf = new Uint8Array(await it.file.arrayBuffer());
+        zip.file(path, buf);
       }
       const blob = await zip.generateAsync({ type: "blob" });
       downloadBlob(blob, "AI文件整理助手_整理结果.zip");
       setStatus("done");
-    } catch {
+    } catch (err) {
+      // 保留真实异常信息，便于后续排查，而不是仅显示笼统错误。
+      console.error("ZIP 生成失败：", err);
       setStatus("error");
     }
   }
