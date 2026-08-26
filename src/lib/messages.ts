@@ -8,6 +8,7 @@ export const messages: Record<Lang, Dict> = {
     "nav.organize": "文件整理",
     "nav.ocr": "OCR",
     "nav.help": "使用说明",
+    "nav.smartOrganize": "智能归档",
     "lang.label": "语言",
 
     "home.title": "AI 文件整理助手",
