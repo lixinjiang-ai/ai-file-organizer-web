@@ -11,13 +11,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.1",
     "next": "16.2.12",
+    "pdfjs-dist": "^6.2.108",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "jszip": "^3.10.1",
-    "tesseract.js": "^5.1.1"
+    "tesseract.js": "^5.1.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260826.1",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
