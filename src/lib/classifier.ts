@@ -87,15 +87,16 @@ function makeResult(
   confidence: number,
   source: "local" | "ai",
 ): Omit<ClassifiedFile, "file"> {
+  const baseName = fileName.includes("/") ? fileName.split("/").pop()! : fileName;
   return {
     originalPath: fileName,
-    fileName,
+    fileName: baseName,
     fileSize: 0,
     confidence,
     level1: l1,
     level2: l2,
     level3: l3,
-    targetPath: `${l1}/${l2}/${l3}/${fileName}`,
+    targetPath: `${l1}/${l2}/${l3}/${baseName}`,
     source,
     needsConfirmation: confidence < 0.70,
   };
