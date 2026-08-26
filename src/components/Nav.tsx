@@ -11,6 +11,7 @@ export function Nav() {
   const links = [
     { href: "/", key: "nav.home" },
     { href: "/file-organizer", key: "nav.organize" },
+    { href: "/smart-organize", key: "nav.smartOrganize" },
     { href: "/ocr", key: "nav.ocr" },
     { href: "/help", key: "nav.help" },
   ];

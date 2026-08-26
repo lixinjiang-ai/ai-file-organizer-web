@@ -62,6 +62,13 @@ export const messages: Record<Lang, Dict> = {
     "help.mac.desc": "更喜欢原生应用？获取 AI文件整理助手_Mac_arm64.dmg，在 Mac 上离线运行。",
     "help.footer": "网页版与 macOS 版是同一产品的两个交付入口。",
 
+    "smartOrganize.title": "四级目录智能归档",
+    "smartOrganize.selectFolder": "选择文件夹",
+    "smartOrganize.folderHint": "支持 webkitdirectory，自动解析目录结构",
+    "smartOrganize.preview": "分类预览",
+    "smartOrganize.done": "归档完成，ZIP 已下载",
+    "smartOrganize.local": "文件在浏览器本地处理，不会上传。",
+
     "footer.note": "文件在浏览器本地处理，不会上传。",
   },
 };

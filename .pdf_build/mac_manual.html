@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>AI 文件整理助手 Mac 版 使用说明书</title>
+<style>
+  :root{
+    --brand:#1E5EBA; --brand-dark:#16263D; --brand-soft:#EAF1FB;
+    --ink:#1f2933; --muted:#5b6b7b; --line:#d8e0ea; --bg:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif;
+    color:var(--ink); font-size:10.5pt; line-height:1.7; background:var(--bg);
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  @page{ size:A4; margin:16mm 15mm; }
+  .page-break{ page-break-before:always; }
+  h1,h2,h3{ color:var(--brand-dark); }
+  h2{ font-size:15pt; margin:0 0 8px; padding:7px 12px; background:var(--brand-soft);
+      border-left:5px solid var(--brand); border-radius:4px; }
+  h3{ font-size:12pt; margin:16px 0 6px; color:var(--brand); }
+  p{ margin:6px 0; }
+  ul,ol{ margin:6px 0 6px 0; padding-left:22px; }
+  li{ margin:3px 0; }
+  table{ width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:9.8pt; }
+  th,td{ border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+  th{ background:var(--brand); color:#fff; font-weight:600; }
+  tbody tr:nth-child(even){ background:#f6f9fd; }
+  code{ background:#f1f4f8; border:1px solid var(--line); border-radius:4px;
+        padding:1px 5px; font-family:"Cascadia Code","Consolas",monospace; font-size:9pt; }
+  pre{ background:#16263D; color:#e8eef6; padding:12px 14px; border-radius:6px;
+       overflow:auto; font-size:8.8pt; line-height:1.5; font-family:"Cascadia Code","Consolas",monospace; }
+  pre code{ background:none; border:none; color:inherit; padding:0; }
+  .note{ background:#fff7e6; border:1px solid #ffe1a6; border-radius:6px; padding:9px 12px; margin:10px 0; }
+  .note b{ color:#a8650b; }
+  .ok{ color:#1a7f37; } .warn{ color:#b54708; } .bad{ color:#c0392b; }
+  .small{ font-size:9pt; color:var(--muted); }
+
+  /* Cover */
+  .cover{ height:255mm; display:flex; flex-direction:column; }
+  .cover .top{ flex:1; display:flex; flex-direction:column; justify-content:center; padding:0 6mm; }
+  .cover .badge{ display:inline-block; background:var(--brand); color:#fff; font-size:10pt;
+    padding:4px 12px; border-radius:20px; letter-spacing:1px; }
+  .cover h1{ font-size:30pt; margin:18px 0 6px; color:var(--brand-dark); }
+  .cover .sub{ font-size:13pt; color:var(--brand); margin:0 0 26px; }
+  .cover .meta{ font-size:10.5pt; color:var(--muted); line-height:2; }
+  .cover .meta b{ color:var(--ink); }
+  .cover .foot{ border-top:2px solid var(--brand); padding-top:10px; font-size:9pt; color:var(--muted); }
+  .toc li{ margin:5px 0; }
+  .pill{ display:inline-block; background:var(--brand-soft); color:var(--brand);
+    border:1px solid #cfe0f6; border-radius:20px; padding:2px 10px; font-size:9pt; margin-right:4px;}
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<section class="cover">
+  <div class="top">
+    <span class="badge">用户使用说明书 · USER MANUAL</span>
+    <h1>AI 文件整理助手</h1>
+    <div class="sub">Mac 版 · 安装与使用指南</div>
+    <div class="meta">
+      <div><b>产品名称：</b>AI 文件整理助手（Mac 版）</div>
+      <div><b>版本：</b>V2.0.1 Mac</div>
+      <div><b>适用系统：</b>macOS 12.0 (Monterey) 及以上</div>
+      <div><b>硬件架构：</b>Apple Silicon（arm64，M1/M2/M3/M4）</div>
+      <div><b>文档版本：</b>V1.0 ｜ <b>更新日期：</b>2026-08-25</div>
+    </div>
+  </div>
+  <div class="foot">
+    本说明书为最终用户文档，介绍产品的安装、功能使用、常见问题与隐私说明。<br/>
+    配套安装包：<code>AI文件整理助手_Mac_arm64.dmg</code>
+  </div>
+</section>
+
+<!-- TOC -->
+<section class="page-break">
+  <h2>目录</h2>
+  <ol class="toc">
+    <li>产品简介</li>
+    <li>系统要求</li>
+    <li>安装方法（从 DMG 安装）</li>
+    <li>首次启动与权限设置</li>
+    <li>使用步骤（文件整理 / Word→PDF / OCR）</li>
+    <li>支持的文件类型</li>
+    <li>AI Key 配置</li>
+    <li>常见问题（FAQ）</li>
+    <li>注意事项</li>
+    <li>隐私与文件处理说明</li>
+    <li>卸载方法</li>
+    <li>联系与反馈方式</li>
+  </ol>
+</section>
+
+<!-- 1 产品简介 -->
+<section class="page-break">
+  <h2>一、产品简介</h2>
+  <p><b>AI 文件整理助手</b>是一款帮助你把杂乱文件快速归类、转换与识别的桌面工具。Mac 版专为 Apple Silicon 芯片的 macOS 设备打造，可离线运行，适合日常办公、资料归档与文档处理。</p>
+  <p>核心能力：</p>
+  <ul>
+    <li><b>文件整理</b>：把混合的文件按类型自动分入对应文件夹（文档 / 图片 / 音频 / 视频等）。</li>
+    <li><b>Word → PDF 转换</b>：借助本机已安装的 Microsoft Word 或 LibreOffice 完成文档转换。</li>
+    <li><b>OCR 文字识别</b>：从图片中提取文字，可复制到剪贴板。</li>
+    <li><b>AI 智能分类（可选）</b>：配置 API Key 后，可按文件内容语义做更精细的分类。</li>
+  </ul>
+  <div class="note"><b>提示：</b>除「AI 智能分类」与首次启动验证需要网络外，文件整理、OCR、Word→PDF 均可完全在本机完成，原始文件不会被上传。</div>
+</section>
+
+<!-- 2 系统要求 -->
+<section>
+  <h2>二、系统要求</h2>
+  <table>
+    <tr><th>项目</th><th>要求</th></tr>
+    <tr><td>操作系统</td><td>macOS 12.0 (Monterey) 或更高版本</td></tr>
+    <tr><td>处理器</td><td>Apple Silicon（M1 / M2 / M3 / M4）</td></tr>
+    <tr><td>内存</td><td>8 GB RAM 及以上</td></tr>
+    <tr><td>磁盘空间</td><td>1 GB 可用空间</td></tr>
+    <tr><td>网络</td><td>首次启动需联网验证；AI 功能需要联网</td></tr>
+  </table>
+</section>
+
+<!-- 3 安装 -->
+<section>
+  <h2>三、安装方法（从 DMG 安装）</h2>
+  <h3>3.1 标准安装（推荐）</h3>
+  <ol>
+    <li>找到下载的安装包 <code>AI文件整理助手_Mac_arm64.dmg</code>，<b>双击挂载</b>磁盘映像。</li>
+    <li>在弹出的窗口中，将 <code>AI文件整理助手.app</code> <b>拖拽到「应用程序（Applications）」文件夹</b>，等待复制完成。</li>
+    <li>右键点击桌面上的 DMG 图标，选择「推出」以卸载磁盘映像。</li>
+  </ol>
+  <h3>3.2 首次启动</h3>
+  <p>由于本应用未经过 Apple 公证（Gatekeeper），首次启动可能遇到安全提示。请按以下步骤允许运行：</p>
+  <ol>
+    <li>打开「系统设置」→「隐私与安全性」。</li>
+    <li>在「安全性」区域，点击「仍要打开」。</li>
+    <li>在弹出的对话框中点击「打开」。</li>
+  </ol>
+  <div class="note"><b>说明：</b>这是 macOS 对未公证应用的正常保护机制，并非应用损坏。之后的启动将不再提示。</div>
+</section>
+
+<!-- 4 使用步骤 -->
+<section>
+  <h2>四、使用步骤</h2>
+  <h3>4.1 文件整理</h3>
+  <ol>
+    <li><b>添加文件</b>：将需要整理的文件拖入应用窗口（支持批量、支持多种类型）。</li>
+    <li><b>自动分类</b>：应用按文件类型自动分组，可在界面中查看分类预览。</li>
+    <li><b>开始整理</b>：点击整理，文件会被归入对应类型的文件夹；原始文件不会被覆盖或修改。</li>
+  </ol>
+  <h3>4.2 Word → PDF 转换</h3>
+  <ol>
+    <li>选择需要转换的 <code>.docx</code> 文件。</li>
+    <li>点击「转换为 PDF」。</li>
+    <li>等待转换完成，PDF 将保存在原文件<b>同一目录</b>。</li>
+  </ol>
+  <h3>4.3 OCR 文字识别</h3>
+  <ol>
+    <li>选择图片文件（<code>.jpg</code> / <code>.png</code> 等）。</li>
+    <li>点击「OCR 识别」，应用将提取图片中的文字。</li>
+    <li>结果可一键复制到剪贴板，或保存为文本。</li>
+  </ol>
+  <h3>4.4 AI 智能分类（可选）</h3>
+  <p>在「设置」中配置 API Key 后开启 AI 分类，应用会分析文件<b>内容语义</b>进行更精确的分类。详见第七节。</p>
+</section>
+
+<!-- 5 支持的文件类型 -->
+<section>
+  <h2>五、支持的文件类型</h2>
+  <table>
+    <tr><th>类别</th><th>常见扩展名</th></tr>
+    <tr><td>文档</td><td><code>.docx</code> <code>.pdf</code> <code>.txt</code> <code>.md</code> 等</td></tr>
+    <tr><td>图片</td><td><code>.jpg</code> <code>.png</code> <code>.gif</code> 等</td></tr>
+    <tr><td>音频</td><td><code>.mp3</code> <code>.wav</code> <code>.flac</code> 等</td></tr>
+    <tr><td>视频</td><td><code>.mp4</code> <code>.mov</code> <code>.avi</code> 等</td></tr>
+  </table>
+  <p class="small">提示：Word→PDF 依赖本机组件（见下表）；OCR 支持常见图片格式。</p>
+  <h3>Word → PDF 转换组件支持</h3>
+  <table>
+    <tr><th>软件</th><th>版本要求</th><th>支持状态</th></tr>
+    <tr><td>Microsoft Word for Mac</td><td>2019 / 2021 / 2024 / 365</td><td class="ok">✅ 优先支持</td></tr>
+    <tr><td>LibreOffice</td><td>7.0 及以上</td><td class="ok">✅ 降级支持</td></tr>
+    <tr><td>WPS Office</td><td>任意版本</td><td class="warn">⚠️ 不支持自动转换</td></tr>
+  </table>
+  <p>应用会按以下优先级查找转换组件：① Microsoft Word for Mac（AppleScript 自动化）→ ② LibreOffice（headless）→ 若均未安装则给出友好提示，其他功能仍正常。</p>
+</section>
+
+<!-- 6 AI Key -->
+<section>
+  <h2>六、AI Key 配置</h2>
+  <h3>6.1 获取 API Key</h3>
+  <ol>
+    <li>访问 <code>https://platform.openai.com</code>，注册并登录账号。</li>
+    <li>在后台创建 API Key 并复制（格式形如 <code>sk-xxxxxxxx</code>）。</li>
+  </ol>
+  <h3>6.2 配置方法</h3>
+  <ol>
+    <li>启动应用，在主界面点击「设置」。</li>
+    <li>在「AI 配置」区域粘贴 API Key，点击「保存」。</li>
+  </ol>
+  <h3>6.3 注意事项</h3>
+  <ul>
+    <li>API Key <b>仅存储在本地</b>，不会上传到任何服务器。</li>
+    <li>建议定期更换 Key；如遇调用限制，请检查账户余额。</li>
+  </ul>
+</section>
+
+<!-- 7 FAQ -->
+<section>
+  <h2>七、常见问题（FAQ）</h2>
+  <h3>Q1：应用无法启动？</h3>
+  <p>① 检查系统版本是否满足 macOS 12.0+；② 确认已授予「完全磁盘访问权限」；③ 尝试重新安装。</p>
+  <h3>Q2：拖拽功能不工作？</h3>
+  <p>① 确认使用支持拖拽的窗口；② 检查是否启用「辅助功能」权限；③ 重启应用后重试。</p>
+  <h3>Q3：Word → PDF 转换失败？</h3>
+  <p>① 确认已安装 Microsoft Word 或 LibreOffice；② 检查 Word 是否支持 AppleScript；③ 手动打开文件确认未损坏。</p>
+  <h3>Q4：AI 分类功能报错？</h3>
+  <p>① 检查 API Key 是否有效；② 确认网络连接正常；③ 查看 OpenAI 官方状态页面。</p>
+  <h3>Q5：应用运行缓慢？</h3>
+  <p>① 关闭其他占用资源的应用；② 减少单次处理文件数量；③ 确保磁盘空间充足。</p>
+</section>
+
+<!-- 8 注意事项 -->
+<section>
+  <h2>八、注意事项</h2>
+  <ul>
+    <li>本应用未经过 Apple 公证，首次启动需按第三节允许运行。</li>
+    <li>文件整理不会改变或覆盖你的原始文件；整理结果输出到新位置。</li>
+    <li>AI 功能依赖你自己的 API Key 与网络，调用可能产生费用，由对应服务商收取。</li>
+    <li>使用 WPS Office 时，Word→PDF 自动转换不可用，建议安装 Microsoft Word 或 LibreOffice。</li>
+  </ul>
+  <div class="note"><b>重要声明：</b>本版本已完成 macOS ARM64 云端构建，但尚建议在真实 Mac 设备上全面测试后再用于生产环境；如发现任何问题，请及时反馈至 GitHub Issues。</div>
+</section>
+
+<!-- 9 隐私 -->
+<section>
+  <h2>九、隐私与文件处理说明</h2>
+  <ul>
+    <li><b>文件本地处理：</b>文件整理、OCR、Word→PDF 均在你的 Mac 本机完成，原始文件不会被上传到任何服务器。</li>
+    <li><b>API Key 本地保存：</b>AI Key 仅存储于本机，不会外传。</li>
+    <li><b>网络使用范围：</b>仅「首次启动验证」与「AI 智能分类」需要联网；其余功能可离线使用。</li>
+    <li><b>我们不收集数据：</b>本应用不内置遥测、不上传你的文件或内容。</li>
+  </ul>
+</section>
+
+<!-- 10 卸载 -->
+<section>
+  <h2>十、卸载方法</h2>
+  <h3>10.1 标准卸载</h3>
+  <ol>
+    <li>打开「访达」→「应用程序」。</li>
+    <li>找到「AI 文件整理助手」，右键「移到废纸篓」，并清空废纸篓。</li>
+  </ol>
+  <h3>10.2 清理配置数据（可选）</h3>
+  <pre><code># 应用配置
+rm -rf ~/Library/Application\ Support/AI文件整理助手
+
+# 缓存文件
+rm -rf ~/Library/Caches/com.aiorganizer.fileorganizer
+
+# 偏好设置
+rm -rf ~/Library/Preferences/com.aiorganizer.fileorganizer.plist</code></pre>
+</section>
+
+<!-- 11 联系 -->
+<section>
+  <h2>十一、联系与反馈方式</h2>
+  <ul>
+    <li><b>问题反馈（GitHub Issues）：</b><code>https://github.com/lixinjiang-ai/AIFileOrganizer/issues</code></li>
+    <li><b>邮箱：</b>请联系开发者（见项目主页）</li>
+    <li><b>文档：</b>参见项目 README 与本公告</li>
+  </ul>
+  <p class="small">版本历史：V2.0.1（2026-08-25，Mac 版首次发布）｜ V2.0.0（2026-08-19，Windows 正式版）</p>
+  <p class="small">— 本说明书结束 —</p>
+</section>
+
+</body>
+</html>

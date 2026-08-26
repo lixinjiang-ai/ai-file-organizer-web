@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AI File Organizer Web — User Manual</title>
+<style>
+  :root{
+    --brand:#1E5EBA; --brand-dark:#16263D; --brand-soft:#EAF1FB;
+    --ink:#1f2933; --muted:#5b6b7b; --line:#d8e0ea; --bg:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    color:var(--ink); font-size:10.5pt; line-height:1.7; background:var(--bg);
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  @page{ size:A4; margin:16mm 15mm; }
+  .page-break{ page-break-before:always; }
+  h1,h2,h3{ color:var(--brand-dark); }
+  h2{ font-size:15pt; margin:0 0 8px; padding:7px 12px; background:var(--brand-soft);
+      border-left:5px solid var(--brand); border-radius:4px; }
+  h3{ font-size:12pt; margin:16px 0 6px; color:var(--brand); }
+  p{ margin:6px 0; }
+  ul,ol{ margin:6px 0 6px 0; padding-left:22px; }
+  li{ margin:3px 0; }
+  table{ width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:9.8pt; }
+  th,td{ border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+  th{ background:var(--brand); color:#fff; font-weight:600; }
+  tbody tr:nth-child(even){ background:#f6f9fd; }
+  code{ background:#f1f4f8; border:1px solid var(--line); border-radius:4px;
+        padding:1px 5px; font-family:"Cascadia Code","Consolas",monospace; font-size:9pt; }
+  pre{ background:#16263D; color:#e8eef6; padding:12px 14px; border-radius:6px;
+       overflow:auto; font-size:8.8pt; line-height:1.5; font-family:"Cascadia Code","Consolas",monospace; }
+  pre code{ background:none; border:none; color:inherit; padding:0; }
+  .note{ background:#fff7e6; border:1px solid #ffe1a6; border-radius:6px; padding:9px 12px; margin:10px 0; }
+  .note b{ color:#a8650b; }
+  .ok{ color:#1a7f37; } .warn{ color:#b54708; }
+  .small{ font-size:9pt; color:var(--muted); }
+  .cover{ height:255mm; display:flex; flex-direction:column; }
+  .cover .top{ flex:1; display:flex; flex-direction:column; justify-content:center; padding:0 6mm; }
+  .cover .badge{ display:inline-block; background:var(--brand); color:#fff; font-size:10pt;
+    padding:4px 12px; border-radius:20px; letter-spacing:1px; }
+  .cover h1{ font-size:29pt; margin:18px 0 6px; color:var(--brand-dark); }
+  .cover .sub{ font-size:13pt; color:var(--brand); margin:0 0 26px; }
+  .cover .meta{ font-size:10.5pt; color:var(--muted); line-height:2; }
+  .cover .meta b{ color:var(--ink); }
+  .cover .foot{ border-top:2px solid var(--brand); padding-top:10px; font-size:9pt; color:var(--muted); }
+  .toc li{ margin:5px 0; }
+  a{ color:var(--brand); text-decoration:none; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<section class="cover">
+  <div class="top">
+    <span class="badge">USER MANUAL</span>
+    <h1>AI File Organizer</h1>
+    <div class="sub">Web Edition · Installation &amp; Usage Guide</div>
+    <div class="meta">
+      <div><b>Product:</b> AI File Organizer — Web Edition (International)</div>
+      <div><b>Version:</b> V1.0 (Web)</div>
+      <div><b>Access:</b> <a href="https://lixinjiang-ai.github.io/ai-file-organizer-web/">https://lixinjiang-ai.github.io/ai-file-organizer-web/</a></div>
+      <div><b>Platform:</b> Any modern browser (no install)</div>
+      <div><b>Doc version:</b> V1.0 ｜ <b>Updated:</b> 2026-08-25</div>
+    </div>
+  </div>
+  <div class="foot">
+    This is the end-user manual: how to access, use, and stay safe with the web app.<br/>
+    Companion macOS package: <code>AI文件整理助手_Mac_arm64.dmg</code> (offline, Apple Silicon).
+  </div>
+</section>
+
+<!-- TOC -->
+<section class="page-break">
+  <h2>Table of Contents</h2>
+  <ol class="toc">
+    <li>Product Introduction</li>
+    <li>How to Access</li>
+    <li>Getting Started</li>
+    <li>Using the File Organizer</li>
+    <li>Using OCR</li>
+    <li>Supported File Types</li>
+    <li>Frequently Asked Questions (FAQ)</li>
+    <li>Notes &amp; Tips</li>
+    <li>Privacy &amp; File Handling</li>
+    <li>Contact &amp; Feedback</li>
+  </ol>
+</section>
+
+<!-- 1 Intro -->
+<section class="page-break">
+  <h2>1. Product Introduction</h2>
+  <p><b>AI File Organizer — Web Edition</b> is the international, browser-based version of AI File Organizer. It helps you sort messy files into tidy folders, and extract text from images with OCR — all running <b>inside your browser</b>.</p>
+  <p>Highlights:</p>
+  <ul>
+    <li><b>No install.</b> Open the web page and start immediately.</li>
+    <li><b>Free.</b> No account, no payment.</li>
+    <li><b>Private by design.</b> Files are processed locally on your device and never uploaded.</li>
+    <li><b>Two tools:</b> File Organizer (sort into categories) and OCR (image → text).</li>
+  </ul>
+  <div class="note"><b>Tip:</b> The web edition is ideal for quick, one-off organizing on any computer or phone. For offline, always-available use on a Mac, see the companion macOS DMG.</div>
+</section>
+
+<!-- 2 Access -->
+<section>
+  <h2>2. How to Access</h2>
+  <ol>
+    <li>Open a modern browser (Chrome, Edge, Safari, or Firefox — recent versions).</li>
+    <li>Visit: <a href="https://lixinjiang-ai.github.io/ai-file-organizer-web/">https://lixinjiang-ai.github.io/ai-file-organizer-web/</a></li>
+    <li>That's it — no download, no sign-up. The page works on desktop and mobile.</li>
+  </ol>
+  <p class="small">Language: the interface defaults to English; use the <b>中文 / EN</b> button in the top menu to switch to Chinese.</p>
+</section>
+
+<!-- 3 Getting started -->
+<section>
+  <h2>3. Getting Started</h2>
+  <ul>
+    <li>From the top menu, choose <b>File Organizer</b> or <b>OCR</b>.</li>
+    <li>Your files are processed on this device only. You can close the tab at any time.</li>
+  </ul>
+</section>
+
+<!-- 4 File Organizer -->
+<section>
+  <h2>4. Using the File Organizer</h2>
+  <ol>
+    <li>Open <b>File Organizer</b> from the top menu.</li>
+    <li><b>Add files:</b> drag &amp; drop files into the box, or click to select. Multiple files are supported.</li>
+    <li><b>Auto-group:</b> files are grouped by type — Documents, Spreadsheets, Presentations, Images, Archives, Audio, Video, Code, Other.</li>
+    <li><b>Review</b> the category preview.</li>
+    <li>Click <b>Organize &amp; Download ZIP</b> to get a tidy archive with one folder per category.</li>
+    <li>Your <b>original files are never modified</b>; the ZIP is a new download.</li>
+  </ol>
+</section>
+
+<!-- 5 OCR -->
+<section>
+  <h2>5. Using OCR</h2>
+  <ol>
+    <li>Open <b>OCR</b> from the top menu.</li>
+    <li>Upload an image (<code>JPG</code> / <code>PNG</code> / …).</li>
+    <li>Choose a language (English / 中文), then click <b>Extract Text</b>.</li>
+    <li>Copy the recognized text, or download it as a <code>.txt</code> file.</li>
+  </ol>
+  <div class="note"><b>First-time note:</b> OCR downloads a small language model (<code>eng</code> or <code>chi_sim</code>) on first use, so an internet connection is needed the first time. After that it runs faster. Recognition happens locally in your browser.</div>
+</section>
+
+<!-- 6 File types -->
+<section>
+  <h2>6. Supported File Types</h2>
+  <p>The File Organizer sorts by extension into these categories:</p>
+  <table>
+    <tr><th>Category</th><th>Typical extensions</th></tr>
+    <tr><td>Documents</td><td><code>.pdf</code> <code>.docx</code> <code>.txt</code> <code>.md</code> …</td></tr>
+    <tr><td>Spreadsheets</td><td><code>.xlsx</code> <code>.csv</code> <code>.xls</code> …</td></tr>
+    <tr><td>Presentations</td><td><code>.pptx</code> <code>.ppt</code> …</td></tr>
+    <tr><td>Images</td><td><code>.jpg</code> <code>.png</code> <code>.gif</code> <code>.webp</code> …</td></tr>
+    <tr><td>Archives</td><td><code>.zip</code> <code>.rar</code> <code>.7z</code> …</td></tr>
+    <tr><td>Audio</td><td><code>.mp3</code> <code>.wav</code> <code>.flac</code> …</td></tr>
+    <tr><td>Video</td><td><code>.mp4</code> <code>.mov</code> <code>.avi</code> …</td></tr>
+    <tr><td>Code</td><td><code>.js</code> <code>.py</code> <code>.html</code> …</td></tr>
+    <tr><td>Other</td><td>anything not matched above</td></tr>
+  </table>
+  <p class="small">OCR accepts common image formats (JPG / PNG / GIF / WebP).</p>
+</section>
+
+<!-- 7 FAQ -->
+<section>
+  <h2>7. Frequently Asked Questions (FAQ)</h2>
+  <h3>Q1: Is my data safe?</h3>
+  <p>Yes. All processing runs in your browser; nothing is uploaded to a server and no files are stored.</p>
+  <h3>Q2: Do I need to install anything?</h3>
+  <p>No. Just open the URL. There is no account to create.</p>
+  <h3>Q3: Is it free?</h3>
+  <p>Yes — completely free to use.</p>
+  <h3>Q4: OCR is slow or not working?</h3>
+  <p>The first recognition downloads the language model (a few MB), so it needs internet on first use. Large images take longer. Use a modern browser.</p>
+  <h3>Q5: Can I organize very large files?</h3>
+  <p>Processing is client-side; very large batches may be slower or limited by your device memory. For huge jobs, split into smaller batches.</p>
+  <h3>Q6: Does it work on my phone?</h3>
+  <p>Yes — the interface is responsive and works on phones and tablets.</p>
+</section>
+
+<!-- 8 Notes -->
+<section>
+  <h2>8. Notes &amp; Tips</h2>
+  <ul>
+    <li>Use a recent version of Chrome, Edge, Safari, or Firefox.</li>
+    <li>OCR needs internet the first time to fetch its language model.</li>
+    <li>Your originals are never changed — the app only produces a new ZIP / text.</li>
+    <li>No account, no cloud storage, no usage tracking.</li>
+  </ul>
+</section>
+
+<!-- 9 Privacy -->
+<section>
+  <h2>9. Privacy &amp; File Handling</h2>
+  <ul>
+    <li><b>Local processing:</b> file organizing and OCR run entirely in your browser. Files are not uploaded.</li>
+    <li><b>No storage:</b> we do not store your files or results on any server.</li>
+    <li><b>No telemetry:</b> the app does not track usage or send analytics.</li>
+    <li><b>Open source:</b> the code is public so you can verify the above claims.</li>
+  </ul>
+</section>
+
+<!-- 10 Contact -->
+<section>
+  <h2>10. Contact &amp; Feedback</h2>
+  <ul>
+    <li><b>Issues / feedback (GitHub):</b> <a href="https://github.com/lixinjiang-ai/ai-file-organizer-web/issues">https://github.com/lixinjiang-ai/ai-file-organizer-web/issues</a></li>
+    <li><b>Source repository:</b> <a href="https://github.com/lixinjiang-ai/ai-file-organizer-web">github.com/lixinjiang-ai/ai-file-organizer-web</a></li>
+  </ul>
+  <p class="small">— End of manual —</p>
+</section>
+
+</body>
+</html>

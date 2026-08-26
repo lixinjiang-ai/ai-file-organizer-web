@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>AI File Organizer Web 版 使用说明书（中文）</title>
+<style>
+  :root{
+    --brand:#1E5EBA; --brand-dark:#16263D; --brand-soft:#EAF1FB;
+    --ink:#1f2933; --muted:#5b6b7b; --line:#d8e0ea; --bg:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif;
+    color:var(--ink); font-size:10.5pt; line-height:1.7; background:var(--bg);
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  @page{ size:A4; margin:16mm 15mm; }
+  .page-break{ page-break-before:always; }
+  h1,h2,h3{ color:var(--brand-dark); }
+  h2{ font-size:15pt; margin:0 0 8px; padding:7px 12px; background:var(--brand-soft);
+      border-left:5px solid var(--brand); border-radius:4px; }
+  h3{ font-size:12pt; margin:16px 0 6px; color:var(--brand); }
+  p{ margin:6px 0; }
+  ul,ol{ margin:6px 0 6px 0; padding-left:22px; }
+  li{ margin:3px 0; }
+  table{ width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:9.8pt; }
+  th,td{ border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+  th{ background:var(--brand); color:#fff; font-weight:600; }
+  tbody tr:nth-child(even){ background:#f6f9fd; }
+  code{ background:#f1f4f8; border:1px solid var(--line); border-radius:4px;
+        padding:1px 5px; font-family:"Cascadia Code","Consolas",monospace; font-size:9pt; }
+  pre{ background:#16263D; color:#e8eef6; padding:12px 14px; border-radius:6px;
+       overflow:auto; font-size:8.8pt; line-height:1.5; font-family:"Cascadia Code","Consolas",monospace; }
+  pre code{ background:none; border:none; color:inherit; padding:0; }
+  .note{ background:#fff7e6; border:1px solid #ffe1a6; border-radius:6px; padding:9px 12px; margin:10px 0; }
+  .note b{ color:#a8650b; }
+  .small{ font-size:9pt; color:var(--muted); }
+  .cover{ height:255mm; display:flex; flex-direction:column; }
+  .cover .top{ flex:1; display:flex; flex-direction:column; justify-content:center; padding:0 6mm; }
+  .cover .badge{ display:inline-block; background:var(--brand); color:#fff; font-size:10pt;
+    padding:4px 12px; border-radius:20px; letter-spacing:1px; }
+  .cover h1{ font-size:29pt; margin:18px 0 6px; color:var(--brand-dark); }
+  .cover .sub{ font-size:13pt; color:var(--brand); margin:0 0 26px; }
+  .cover .meta{ font-size:10.5pt; color:var(--muted); line-height:2; }
+  .cover .meta b{ color:var(--ink); }
+  .cover .foot{ border-top:2px solid var(--brand); padding-top:10px; font-size:9pt; color:var(--muted); }
+  .toc li{ margin:5px 0; }
+  a{ color:var(--brand); text-decoration:none; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<section class="cover">
+  <div class="top">
+    <span class="badge">用户使用说明书 · 中文版</span>
+    <h1>AI File Organizer</h1>
+    <div class="sub">Web 国际版 · 使用指南</div>
+    <div class="meta">
+      <div><b>产品：</b>AI File Organizer — Web 国际版</div>
+      <div><b>版本：</b>V1.0（Web）</div>
+      <div><b>访问地址：</b><a href="https://lixinjiang-ai.github.io/ai-file-organizer-web/">https://lixinjiang-ai.github.io/ai-file-organizer-web/</a></div>
+      <div><b>平台：</b>任意现代浏览器（免安装）</div>
+      <div><b>文档版本：</b>V1.0 ｜ <b>更新：</b>2026-08-25</div>
+    </div>
+  </div>
+  <div class="foot">
+    本说明书为最终用户文档：如何访问、使用并保障文件安全。<br/>
+    配套 macOS 安装包：<code>AI文件整理助手_Mac_arm64.dmg</code>（离线，Apple Silicon）。
+  </div>
+</section>
+
+<!-- TOC -->
+<section class="page-break">
+  <h2>目录</h2>
+  <ol class="toc">
+    <li>产品简介</li>
+    <li>如何访问</li>
+    <li>开始使用</li>
+    <li>使用文件整理</li>
+    <li>使用 OCR 文字识别</li>
+    <li>支持的文件类型</li>
+    <li>常见问题（FAQ）</li>
+    <li>注意事项</li>
+    <li>隐私与文件处理说明</li>
+    <li>联系与反馈</li>
+  </ol>
+</section>
+
+<!-- 1 -->
+<section class="page-break">
+  <h2>一、产品简介</h2>
+  <p><b>AI File Organizer — Web 国际版</b> 是 AI 文件整理助手的浏览器版本。它帮你把杂乱文件快速归类，并能从图片中提取文字（OCR）——<b>全部在浏览器内运行</b>。</p>
+  <p>核心特点：</p>
+  <ul>
+    <li><b>免安装</b>：打开网页即可使用。</li>
+    <li><b>免费</b>：无需账号、无需付费。</li>
+    <li><b>隐私优先</b>：文件在本机处理，不会上传。</li>
+    <li><b>两个工具</b>：文件整理（按类归类）+ OCR（图片转文字）。</li>
+  </ul>
+  <div class="note"><b>提示：</b>Web 版适合在任何电脑或手机上快速整理文件。如需 Mac 上离线、常驻使用，请看配套的 macOS DMG。</div>
+</section>
+
+<!-- 2 -->
+<section>
+  <h2>二、如何访问</h2>
+  <ol>
+    <li>打开现代浏览器（Chrome / Edge / Safari / Firefox 的新版本）。</li>
+    <li>访问：<a href="https://lixinjiang-ai.github.io/ai-file-organizer-web/">https://lixinjiang-ai.github.io/ai-file-organizer-web/</a></li>
+    <li>无需下载、无需注册，桌面与手机均可使用。</li>
+  </ol>
+  <p class="small">语言：界面默认英文，点击顶部菜单的「中文 / EN」按钮可切换为中文。</p>
+</section>
+
+<!-- 3 -->
+<section>
+  <h2>三、开始使用</h2>
+  <ul>
+    <li>在顶部菜单选择「文件整理」或「OCR」。</li>
+    <li>文件仅在本设备处理，可随时关闭页面。</li>
+  </ul>
+</section>
+
+<!-- 4 -->
+<section>
+  <h2>四、使用文件整理</h2>
+  <ol>
+    <li>在顶部菜单打开「文件整理」。</li>
+    <li><b>添加文件</b>：把文件拖入方框，或点击选择，支持多文件。</li>
+    <li><b>自动分组</b>：文件按类型归为：文档、表格、演示、图片、压缩包、音频、视频、代码、其他。</li>
+    <li>查看分类预览。</li>
+    <li>点击「整理并下载 ZIP」，获得按类别分文件夹的压缩包。</li>
+    <li><b>原始文件不会被修改</b>；ZIP 是全新下载。</li>
+  </ol>
+</section>
+
+<!-- 5 -->
+<section>
+  <h2>五、使用 OCR 文字识别</h2>
+  <ol>
+    <li>在顶部菜单打开「OCR」。</li>
+    <li>上传图片（<code>JPG</code> / <code>PNG</code> 等）。</li>
+    <li>选择语言（English / 中文），点击「提取文字」。</li>
+    <li>复制识别结果，或下载为 <code>.txt</code> 文件。</li>
+  </ol>
+  <div class="note"><b>首次使用提示：</b>OCR 首次会下载一个小语言模型（eng 或 chi_sim），因此首次需要联网；之后更快。识别过程在浏览器本地完成。</div>
+</section>
+
+<!-- 6 -->
+<section>
+  <h2>六、支持的文件类型</h2>
+  <p>文件整理按扩展名归入以下类别：</p>
+  <table>
+    <tr><th>类别</th><th>常见扩展名</th></tr>
+    <tr><td>文档</td><td><code>.pdf</code> <code>.docx</code> <code>.txt</code> <code>.md</code> …</td></tr>
+    <tr><td>表格</td><td><code>.xlsx</code> <code>.csv</code> <code>.xls</code> …</td></tr>
+    <tr><td>演示</td><td><code>.pptx</code> <code>.ppt</code> …</td></tr>
+    <tr><td>图片</td><td><code>.jpg</code> <code>.png</code> <code>.gif</code> <code>.webp</code> …</td></tr>
+    <tr><td>压缩包</td><td><code>.zip</code> <code>.rar</code> <code>.7z</code> …</td></tr>
+    <tr><td>音频</td><td><code>.mp3</code> <code>.wav</code> <code>.flac</code> …</td></tr>
+    <tr><td>视频</td><td><code>.mp4</code> <code>.mov</code> <code>.avi</code> …</td></tr>
+    <tr><td>代码</td><td><code>.js</code> <code>.py</code> <code>.html</code> …</td></tr>
+    <tr><td>其他</td><td>未匹配到的文件</td></tr>
+  </table>
+  <p class="small">OCR 支持常见图片格式（JPG / PNG / GIF / WebP）。</p>
+</section>
+
+<!-- 7 -->
+<section>
+  <h2>七、常见问题（FAQ）</h2>
+  <h3>Q1：我的数据安全吗？</h3>
+  <p>安全。全部处理在浏览器内进行，文件不上传、不存储。</p>
+  <h3>Q2：需要安装什么吗？</h3>
+  <p>不需要。打开网址即可，无需注册账号。</p>
+  <h3>Q3：收费吗？</h3>
+  <p>完全免费。</p>
+  <h3>Q4：OCR 很慢或识别不出？</h3>
+  <p>首次识别会下载语言模型（几 MB），需联网；大图耗时更久。请使用现代浏览器。</p>
+  <h3>Q5：能处理超大文件吗？</h3>
+  <p>处理在本地进行，超大批量可能较慢或受设备内存限制；建议分批处理。</p>
+  <h3>Q6：手机能用吗？</h3>
+  <p>可以，界面自适应，支持手机与平板。</p>
+</section>
+
+<!-- 8 -->
+<section>
+  <h2>八、注意事项</h2>
+  <ul>
+    <li>请使用较新的 Chrome / Edge / Safari / Firefox。</li>
+    <li>OCR 首次需联网以下载语言模型。</li>
+    <li>原始文件永不被改动，应用只生成新的 ZIP / 文本。</li>
+    <li>无账号、无云存储、无使用追踪。</li>
+  </ul>
+</section>
+
+<!-- 9 -->
+<section>
+  <h2>九、隐私与文件处理说明</h2>
+  <ul>
+    <li><b>本地处理</b>：文件整理与 OCR 均在浏览器内完成，文件不上传。</li>
+    <li><b>不存储</b>：我们不会在服务器保存你的文件或结果。</li>
+    <li><b>无遥测</b>：应用不追踪使用、不发送分析数据。</li>
+    <li><b>开源</b>：代码公开，你可自行验证上述声明。</li>
+  </ul>
+</section>
+
+<!-- 10 -->
+<section>
+  <h2>十、联系与反馈</h2>
+  <ul>
+    <li><b>问题反馈（GitHub）：</b><a href="https://github.com/lixinjiang-ai/ai-file-organizer-web/issues">https://github.com/lixinjiang-ai/ai-file-organizer-web/issues</a></li>
+    <li><b>源码仓库：</b><a href="https://github.com/lixinjiang-ai/ai-file-organizer-web">github.com/lixinjiang-ai/ai-file-organizer-web</a></li>
+  </ul>
+  <p class="small">— 说明书结束 —</p>
+</section>
+
+</body>
+</html>
