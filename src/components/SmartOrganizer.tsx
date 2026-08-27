@@ -1,18 +1,18 @@
 /**
  * V2-P7: 最后一公里产品收口 - 普通用户一眼就会用
  *
- * 流程：选择文件 → 解析 → 分类 → 结果预览（左目录树 + 右文件列表）→ 人工调整 → 确认归档 → 生成 ZIP → 下载
+ * 流程：选择文件 → 解析 → 分类 → 结果预览（左目录树 + 右文件列表）→ 人工调整 → 确认归档 → 整理 → 生成结果（ZIP 导出）→ 下载
  *
  * 本次重点：
  *  1. 首次使用四步引导（idle）
- *  2. 统一进度面板（解析 / AI 请求 / ZIP 三相位 + 计数）
+ *  2. 统一进度面板（解析 / AI 请求 / 整理结果打包 三相位 + 计数）
  *  3. AI 失败横幅（明确哪些文件降级为规则分类，不阻断任务）
  *  4. 左目录树 + 右文件列表双栏：AI/规则明确标识、低置信度突出
  *  5. 完成页下载后「下一步」提示
  *  6. 响应式 / 空状态 / 错误 / 重置收口
  *
  * 严格保持 V1（FileOrganizer.tsx / OCR / 首页 / 导航）不受影响。
- * ZIP 生成复用 zipEngine（与 V1 同一套 JSZip 逻辑）。
+ * 整理结果以 ZIP 导出，复用 zipEngine（与 V1 同一套 JSZip 逻辑）。
  */
 
 "use client";
@@ -336,7 +336,7 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
     setEdits(next);
   }
 
-  // ── 确认归档并生成 ZIP ─────────────────────────────────────────────────────
+  // ── 开始整理：生成整理结果并打包为 ZIP 导出 ───────────────────────────────────
   async function confirmAndPackage() {
     setStatus("processing");
     setError(null);
@@ -375,7 +375,7 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
       return;
     }
 
-    // 4. 生成 ZIP（复用 V1 JSZip 能力），实时上报进度
+    // 4. 生成整理结果 ZIP（导出），实时上报进度
     try {
       const result = await buildArchiveZip(
         resolved,
@@ -402,7 +402,7 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
       });
       setStatus("done");
     } catch (err) {
-      console.error("ZIP 生成失败:", err);
+      console.error("整理结果 ZIP 生成失败:", err);
       setError(t("smartOrganize.error.zipFail"));
       setStatus("error");
     }
