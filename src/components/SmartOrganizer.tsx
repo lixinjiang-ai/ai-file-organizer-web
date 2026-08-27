@@ -1,45 +1,65 @@
 /**
- * V2-P4: 四级目录智能归档 - UI 组件
+ * V2-P5: 四级目录智能归档 - 完整可交付流程 UI
  *
- * 支持：
- * 1. 可选"整理要求"输入框
- * 2. 两种目录模式（A=自动/ B=现有结构）
- * 3. AI 隐私提示
- * 4. 分类结果预览 + 人工确认
- * 5. ZIP 打包下载
+ * 流程：选择文件 → 解析 → 分类 → 结果预览 → 人工调整 → 确认归档 → 生成 ZIP → 下载
+ *
+ * 严格保持 V1（FileOrganizer.tsx / OCR / 首页 / 导航）不受影响。
+ * ZIP 生成复用 zipEngine（与 V1 同一套 JSZip 逻辑）。
  */
 
 "use client";
 
-import { useRef, useState } from "react";
-import JSZip from "jszip";
+import { useMemo, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { smartClassify, type OrganizeMode, buildOrganizeInput } from "@/lib/smartOrganizer";
-import { buildDirectoryTree } from "@/lib/directoryTree";
-import type { ClassifiedFile } from "@/lib/directoryTree";
+import {
+  smartClassify,
+  buildOrganizeInput,
+  type OrganizeMode,
+} from "@/lib/smartOrganizer";
+import { buildDirectoryTree, type ClassifiedFile } from "@/lib/directoryTree";
+import {
+  applyEdits,
+  parseTargetPath,
+  validateArchiveItems,
+  findDuplicatePaths,
+  resolveConflicts,
+  computeArchiveStats,
+  scanZipPathSafety,
+  type EditLevels,
+} from "@/lib/archiveEngine";
+import { buildArchiveZip, downloadBlob, isDownloadSupported, type ZipResult } from "@/lib/zipEngine";
 
 type Status = "idle" | "parsing" | "classifying" | "confirming" | "processing" | "done" | "error";
 
-interface SmartOrganizerProps {
-  apiKey?: string;
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
-export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
+export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
   const { t } = useI18n();
   const [status, setStatus] = useState<Status>("idle");
   const [classifiedFiles, setClassifiedFiles] = useState<ClassifiedFile[]>([]);
+  const [edits, setEdits] = useState<Record<number, EditLevels>>({});
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [stats, setStats] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [zipResult, setZipResult] = useState<ZipResult | null>(null);
 
-  // V2-P4: 整理要求和目录模式
+  // V2-P4 选项
   const [userRequirement, setUserRequirement] = useState("");
   const [mode, setMode] = useState<OrganizeMode>("auto");
-  const [existingTree, setExistingTree] = useState<any>(null);
   const [keepFilename, setKeepFilename] = useState(false);
 
-  // V2-P4: 快速模板
+  // V2-P5 选项
+  const [conflictStrategy, setConflictStrategy] = useState<"auto" | "manual">("auto");
+  const [prefix, setPrefix] = useState<EditLevels>({ level1: "", level2: "", level3: "", fileName: "" });
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const quickTemplates = [
     { label: "按业务类型整理", req: "按业务类型整理：发票、合同、报告等分别归类" },
     { label: "按年份+业务整理", req: "按年份和业务类型整理，2025年发票放到 财务/发票/2025，合同按客户分类" },
@@ -52,30 +72,45 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
     setUserRequirement(req);
   }
 
-  // 手动确认状态
-  const [confirmedPaths, setConfirmedPaths] = useState<Set<string>>(new Set());
+  // ── 由 base + edits 计算"有效结果" ─────────────────────────────────────────
+  const effectiveItems = useMemo(
+    () => applyEdits(classifiedFiles, edits, keepFilename),
+    [classifiedFiles, edits, keepFilename],
+  );
+  const stats = useMemo(() => computeArchiveStats(effectiveItems), [effectiveItems]);
+  const invalidMap = useMemo(() => {
+    const m = new Map<number, string>();
+    effectiveItems.forEach((it, i) => {
+      const v = validateArchiveItems([it]);
+      if (v.invalid.length > 0) m.set(i, v.invalid[0].error);
+    });
+    return m;
+  }, [effectiveItems]);
+  const dupPaths = useMemo(
+    () => new Set(findDuplicatePaths(effectiveItems.map((i) => i.targetPath))),
+    [effectiveItems],
+  );
 
-  /**
-   * 处理文件夹选择
-   */
+  const isBusy = status === "parsing" || status === "classifying";
+
+  // ── 选择文件 ───────────────────────────────────────────────────────────────
   async function handleFolderSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const items = e.target.files;
-    if (!items || items.length === 0) return;
-
+    if (!items || items.length === 0) {
+      setError(t("smartOrganize.error.noFile"));
+      setStatus("error");
+      return;
+    }
     setStatus("parsing");
     setError(null);
+    setZipResult(null);
+    setEdits({});
 
     try {
-      // 1. 构建目录树（用于 mode=existing）
       const tree = buildDirectoryTree(items);
-      setExistingTree(tree);
 
-      // 2. 解析文件（提取文本内容）
-      setStatus("parsing");
-      const fileMetas = await buildOrganizeInput(items, true);
-
-      // 3. 智能分类
       setStatus("classifying");
+      const fileMetas = await buildOrganizeInput(items, true);
       setProgress({ current: 0, total: fileMetas.length });
 
       const result = await smartClassify(fileMetas, {
@@ -84,130 +119,164 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
         autoConfirm: false,
         mode,
         userRequirement: userRequirement.trim() || undefined,
-        existingTree,
+        existingTree: tree,
         keepFilename,
       });
 
       setClassifiedFiles(result.files);
-      setStats(result.stats);
       setStatus("confirming");
     } catch (err) {
       console.error("分类失败:", err);
-      setError(String(err));
+      setError(t("smartOrganize.error.readFail"));
       setStatus("error");
     }
   }
 
-  /**
-   * 切换确认状态
-   */
-  function toggleConfirm(path: string) {
-    setConfirmedPaths((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
-      }
-      return next;
+  // ── 单文件编辑 ─────────────────────────────────────────────────────────────
+  function updateEdit(index: number, field: keyof EditLevels, value: string) {
+    setEdits((prev) => {
+      const base = prev[index] ?? parseTargetPath(classifiedFiles[index].targetPath);
+      return { ...prev, [index]: { ...base, [field]: value } };
     });
   }
 
-  /**
-   * 确认并打包
-   */
+  // ── 批量操作 ───────────────────────────────────────────────────────────────
+  function acceptAllAi() {
+    setEdits({});
+  }
+  function useRuleForAll() {
+    const next: Record<number, EditLevels> = {};
+    classifiedFiles.forEach((cf, i) => {
+      next[i] = parseTargetPath(cf.localTargetPath ?? cf.targetPath);
+    });
+    setEdits(next);
+  }
+  function restoreAiForAll() {
+    const next: Record<number, EditLevels> = {};
+    classifiedFiles.forEach((cf, i) => {
+      next[i] = parseTargetPath(cf.aiTargetPath ?? cf.targetPath);
+    });
+    setEdits(next);
+  }
+  function clearAll() {
+    const next: Record<number, EditLevels> = {};
+    classifiedFiles.forEach((cf, i) => {
+      next[i] = { level1: "未分类", level2: "待确认", level3: "其他", fileName: cf.fileName };
+    });
+    setEdits(next);
+  }
+  function applyPrefix() {
+    if (!prefix.level1 && !prefix.level2 && !prefix.level3) return;
+    const next: Record<number, EditLevels> = {};
+    classifiedFiles.forEach((cf, i) => {
+      const cur = edits[i] ?? parseTargetPath(cf.targetPath);
+      next[i] = {
+        level1: prefix.level1 || cur.level1,
+        level2: prefix.level2 || cur.level2,
+        level3: prefix.level3 || cur.level3,
+        fileName: cf.fileName,
+      };
+    });
+    setEdits(next);
+  }
+
+  // ── 确认归档并生成 ZIP ─────────────────────────────────────────────────────
   async function confirmAndPackage() {
     setStatus("processing");
     setError(null);
 
+    // 0. 超大文件检查
+    const oversize = effectiveItems.find((it) => it.fileSize > MAX_FILE_SIZE);
+    if (oversize) {
+      setError(t("smartOrganize.error.tooLarge"));
+      setStatus("confirming");
+      return;
+    }
+
+    // 1. 冻结并二次校验全部路径
+    const { valid, invalid } = validateArchiveItems(effectiveItems);
+    if (invalid.length > 0) {
+      setError(t("smartOrganize.error.pathInvalid"));
+      setStatus("confirming");
+      return;
+    }
+
+    // 2. 冲突处理
+    const { resolved, unresolved } = resolveConflicts(valid, conflictStrategy, keepFilename);
+    if (unresolved.length > 0) {
+      setError(t("smartOrganize.error.dupUnresolved"));
+      setStatus("confirming");
+      return;
+    }
+
+    // 3. 浏览器下载支持
+    if (!isDownloadSupported()) {
+      setError(t("smartOrganize.zip.noSupport"));
+      setStatus("error");
+      return;
+    }
+
+    // 4. 生成 ZIP（复用 V1 JSZip 能力）
     try {
-      const zip = new JSZip();
-      const usedPaths = new Set<string>();
-      let processed = 0;
-      const total = classifiedFiles.length;
+      const result = await buildArchiveZip(
+        resolved,
+        `AI文件整理助手_智能归档_${new Date().toISOString().slice(0, 10)}.zip`,
+      );
 
-      for (const item of classifiedFiles) {
-        if (item.needsConfirmation && !confirmedPaths.has(item.targetPath)) {
-          continue;
-        }
-
-        let path = item.targetPath;
-        path = makeUniquePath(path, usedPaths);
-        usedPaths.add(path);
-
-        const buf = new Uint8Array(await item.file.arrayBuffer());
-        zip.file(path, buf);
-
-        processed++;
-        setProgress({ current: processed, total });
+      // 5. 防御性安全扫描：ZIP 内不得出现绝对/危险路径
+      const scan = scanZipPathSafety(resolved.map((i) => i.targetPath));
+      if (!scan.safe) {
+        console.error("ZIP 路径安全扫描未通过:", scan.violations);
+        setError(t("smartOrganize.error.unexpected"));
+        setStatus("error");
+        return;
       }
 
-      const blob = await zip.generateAsync({ type: "blob" });
-      downloadBlob(blob, "AI文件整理助手_智能归档.zip");
+      setZipResult(result);
       setStatus("done");
     } catch (err) {
-      console.error("打包失败:", err);
-      setError(String(err));
+      console.error("ZIP 生成失败:", err);
+      setError(t("smartOrganize.error.zipFail"));
       setStatus("error");
     }
   }
 
-  function downloadBlob(blob: Blob, name: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
-  }
-
-  function makeUniquePath(basePath: string, usedPaths: Set<string>): string {
-    if (!usedPaths.has(basePath)) return basePath;
-    const parts = basePath.split("/");
-    const fileName = parts.pop()!;
-    const dot = fileName.lastIndexOf(".");
-    const base = dot > 0 ? fileName.slice(0, dot) : fileName;
-    const ext = dot > 0 ? fileName.slice(dot) : "";
-    let i = 1;
-    while (true) {
-      const newName = `${base}_${i}${ext}`;
-      const newPath = [...parts, newName].join("/");
-      if (!usedPaths.has(newPath)) return newPath;
-      i++;
+  function downloadNow() {
+    if (!zipResult) return;
+    try {
+      downloadBlob(zipResult.blob, zipResult.fileName);
+    } catch (err) {
+      console.error("下载失败:", err);
+      setError(t("smartOrganize.zip.noSupport"));
     }
   }
 
+  function reset() {
+    setClassifiedFiles([]);
+    setEdits({});
+    setZipResult(null);
+    setError(null);
+    setStatus("idle");
+  }
+
+  // ── 渲染 ───────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("smartOrganize.title")}</h1>
 
-      {/* V2-P4: 目录模式选择 */}
+      {/* 目录模式 */}
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <p className="mb-2 text-sm font-medium text-slate-600">{t("smartOrganize.mode.label")}</p>
         <div className="flex gap-4">
           <label className="flex cursor-pointer items-start gap-2">
-            <input
-              type="radio"
-              name="organizeMode"
-              checked = {mode === "auto"}
-              onChange={() => setMode("auto")}
-              className="mt-0.5 accent-[#1e5eba]"
-            />
+            <input type="radio" name="organizeMode" checked={mode === "auto"} onChange={() => setMode("auto")} className="mt-0.5 accent-[#1e5eba]" />
             <div>
               <span className="text-sm font-medium text-slate-700">{t("smartOrganize.mode.auto")}</span>
               <p className="text-xs text-slate-400">AI 根据内容自动创建目录结构</p>
             </div>
           </label>
           <label className="flex cursor-pointer items-start gap-2">
-            <input
-              type="radio"
-              name="organizeMode"
-              checked={mode === "existing"}
-              onChange={() => setMode("existing")}
-              className="mt-0.5 accent-[#1e5eba]"
-            />
+            <input type="radio" name="organizeMode" checked={mode === "existing"} onChange={() => setMode("existing")} className="mt-0.5 accent-[#1e5eba]" />
             <div>
               <span className="text-sm font-medium text-slate-700">{t("smartOrganize.mode.existing")}</span>
               <p className="text-xs text-slate-400">AI 只能选择你已有的目录节点</p>
@@ -216,11 +285,9 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
         </div>
       </div>
 
-      {/* V2-P4: 整理要求输入框 + 快速模板 */}
+      {/* 整理要求 + 模板 + 保留文件名 */}
       <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <label className="mb-2 block text-sm font-medium text-slate-600">
-          {t("smartOrganize.requirement.label")}
-        </label>
+        <label className="mb-2 block text-sm font-medium text-slate-600">{t("smartOrganize.requirement.label")}</label>
         <textarea
           value={userRequirement}
           onChange={(e) => setUserRequirement(e.target.value)}
@@ -230,174 +297,194 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
         />
         <p className="mt-1 text-xs text-slate-400">{t("smartOrganize.requirement.hint")}</p>
 
-        {/* V2-P4: 快速模板按钮 */}
         <div className="mt-3">
           <p className="mb-2 text-xs font-medium text-slate-500">{t("smartOrganize.templates.label")}</p>
           <div className="flex flex-wrap gap-2">
             {quickTemplates.map((tpl) => (
-              <button
-                key={tpl.label}
-                onClick={() => applyTemplate(tpl.req)}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-[#1e5eba] hover:text-[#1e5eba] transition"
-              >
+              <button key={tpl.label} onClick={() => applyTemplate(tpl.req)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-[#1e5eba] hover:text-[#1e5eba] transition">
                 {tpl.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* V2-P4: 保留原文件名选项 */}
         <div className="mt-3 flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="keepFilename"
-            checked={keepFilename}
-            onChange={(e) => setKeepFilename(e.target.checked)}
-            className="h-4 w-4 accent-[#1e5eba]"
-          />
-          <label htmlFor="keepFilename" className="text-sm text-slate-600">
-            {t("smartOrganize.keepFilename")}
-          </label>
+          <input type="checkbox" id="keepFilename" checked={keepFilename} onChange={(e) => setKeepFilename(e.target.checked)} className="h-4 w-4 accent-[#1e5eba]" />
+          <label htmlFor="keepFilename" className="text-sm text-slate-600">{t("smartOrganize.keepFilename")}</label>
         </div>
-
         <p className="mt-2 text-xs text-slate-400">{t("smartOrganize.priority.note")}</p>
       </div>
 
-      {/* 隐私提示 */}
-      <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">
-        🔒 {t("smartOrganize.privacy.note")}
-      </div>
-
-      {/* API Key 提示 */}
+      {/* 隐私 / API Key 提示 */}
+      <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">🔒 {t("smartOrganize.privacy.note")}</div>
       {!apiKey && (
-        <div className="rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
-          ⚠️ {t("smartOrganize.noApiKey")}
-        </div>
+        <div className="rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-700">⚠️ {t("smartOrganize.noApiKey")}</div>
       )}
 
-      {/* 文件夹选择 */}
-      <div
-        onClick={() => inputRef.current?.click()}
-        className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-10 text-center transition ${
-          status === "parsing" || status === "classifying"
-            ? "border-[#1e5eba] bg-[#e3ecfa]"
-            : "border-slate-300 bg-white hover:border-[#1e5eba]"
-        }`}
-      >
-        <div className="text-4xl">📂</div>
-        <p className="mt-2 font-medium text-slate-700">{t("smartOrganize.selectFolder")}</p>
-        <p className="mt-1 text-sm text-slate-400">{t("smartOrganize.folderHint")}</p>
-        <input
-          ref={inputRef}
-          type="file"
-          // @ts-expect-error - webkitdirectory is browser-specific
-          webkitdirectory=""
-          directory=""
-          multiple
-          className="hidden"
-          onChange={handleFolderSelect}
-        />
-      </div>
+      {/* 选择文件 */}
+      {status === "idle" || status === "error" ? (
+        <div
+          onClick={() => inputRef.current?.click()}
+          className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-10 text-center transition ${
+            isBusy ? "border-[#1e5eba] bg-[#e3ecfa]" : "border-slate-300 bg-white hover:border-[#1e5eba]"
+          }`}
+        >
+          <div className="text-4xl">📂</div>
+          <p className="mt-2 font-medium text-slate-700">{t("smartOrganize.selectFolder")}</p>
+          <p className="mt-1 text-sm text-slate-400">{t("smartOrganize.folderHint")}</p>
+          <input ref={inputRef} type="file" multiple className="hidden" onChange={handleFolderSelect} {...({ webkitdirectory: "", directory: "" } as any)} />
+        </div>
+      ) : (
+        <button onClick={reset} className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:border-[#1e5eba] hover:text-[#1e5eba]">
+          {t("smartOrganize.reselect")}
+        </button>
+      )}
 
-      {/* 进度显示 */}
+      {/* 进度 */}
       {(status === "parsing" || status === "classifying" || status === "processing") && (
         <div className="space-y-2">
           <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-            <div
-              className="h-full rounded-full bg-[#1e5eba] transition-all"
-              style={{ width: `${stats ? (progress.current / Math.max(progress.total, 1)) * 100 : 0}%` }}
-            />
+            <div className="h-full rounded-full bg-[#1e5eba] transition-all" style={{ width: `${stats.total ? (progress.current / Math.max(progress.total, 1)) * 100 : 0}%` }} />
           </div>
-          <p className="text-sm text-slate-500">
-            {progress.current}/{progress.total}
-          </p>
+          <p className="text-sm text-slate-500">{progress.current}/{progress.total}</p>
         </div>
       )}
 
-      {/* 错误信息 */}
+      {/* 错误 */}
       {error && (
         <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">⚠️ {error}</p>
       )}
 
-      {/* 分类结果预览 */}
-      {status === "confirming" && classifiedFiles.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              {t("smartOrganize.preview")}
-            </h2>
-            <span className="text-xs text-slate-400">
-              本地: {stats?.localClassified} | AI: {stats?.aiClassified} | 待确认: {stats?.needsConfirmation}
-            </span>
-          </div>
+      {/* 统计面板 */}
+      {status === "confirming" && effectiveItems.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-6">
+          {[
+            ["smartOrganize.stats.total", stats.total],
+            ["smartOrganize.stats.classified", stats.classified],
+            ["smartOrganize.stats.ai", stats.aiCount],
+            ["smartOrganize.stats.rule", stats.ruleCount],
+            ["smartOrganize.stats.pending", stats.pending],
+            ["smartOrganize.stats.failed", stats.failed],
+          ].map(([k, v]) => (
+            <div key={k as string} className="text-center">
+              <div className="text-2xl font-bold text-[#1e5eba]">{v as number}</div>
+              <div className="text-xs text-slate-500">{t(k as string)}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
-          <div className="max-h-96 overflow-y-auto rounded-xl border border-slate-200 bg-white">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 sticky top-0">
-                <tr>
-                  <th className="px-4 py-2 text-left">文件</th>
-                  <th className="px-4 py-2 text-left">目录</th>
-                  <th className="px-4 py-2 text-center">置信度</th>
-                  <th className="px-4 py-2 text-center">来源</th>
-                  <th className="px-4 py-2 text-center">确认</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {classifiedFiles.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50">
-                    <td className="px-4 py-2 font-medium text-slate-700">{item.fileName}</td>
-                    <td className="px-4 py-2 text-slate-500 text-xs">{item.targetPath}</td>
-                    <td className="px-4 py-2 text-center">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs ${
-                          item.confidence >= 0.9
-                            ? "bg-green-100 text-green-700"
-                            : item.confidence >= 0.7
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {(item.confidence * 100).toFixed(0)}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      <span className="text-xs text-slate-400">{item.source === "local" ? "本地规则" : "AI辅助"}</span>
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      {item.needsConfirmation && (
-                        <button
-                          onClick={() => toggleConfirm(item.targetPath)}
-                          className={`rounded px-2 py-1 text-xs ${
-                            confirmedPaths.has(item.targetPath)
-                              ? "bg-green-500 text-white"
-                              : "bg-slate-200 text-slate-600 hover:bg-slate-300"
-                          }`}
-                        >
-                          {confirmedPaths.has(item.targetPath) ? "✓ 已确认" : "确认"}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* 批量操作 */}
+      {status === "confirming" && effectiveItems.length > 0 && (
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-sm font-medium text-slate-600">{t("smartOrganize.batch.label")}</p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={acceptAllAi} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-[#1e5eba] hover:text-[#1e5eba]">{t("smartOrganize.batch.acceptAi")}</button>
+            <button onClick={useRuleForAll} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-[#1e5eba] hover:text-[#1e5eba]">{t("smartOrganize.batch.useRule")}</button>
+            <button onClick={restoreAiForAll} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-[#1e5eba] hover:text-[#1e5eba]">{t("smartOrganize.batch.restoreAi")}</button>
+            <button onClick={clearAll} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-[#1e5eba] hover:text-[#1e5eba]">{t("smartOrganize.batch.clear")}</button>
           </div>
+          <div className="rounded-lg bg-slate-50 p-3">
+            <p className="mb-2 text-xs text-slate-500">{t("smartOrganize.batch.prefixHint")}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <input value={prefix.level1} onChange={(e) => setPrefix((p) => ({ ...p, level1: e.target.value }))} placeholder={t("smartOrganize.batch.l1")} className="w-28 rounded border border-slate-200 px-2 py-1 text-xs" />
+              <input value={prefix.level2} onChange={(e) => setPrefix((p) => ({ ...p, level2: e.target.value }))} placeholder={t("smartOrganize.batch.l2")} className="w-28 rounded border border-slate-200 px-2 py-1 text-xs" />
+              <input value={prefix.level3} onChange={(e) => setPrefix((p) => ({ ...p, level3: e.target.value }))} placeholder={t("smartOrganize.batch.l3")} className="w-28 rounded border border-slate-200 px-2 py-1 text-xs" />
+              <button onClick={applyPrefix} className="rounded-lg bg-[#1e5eba] px-3 py-1.5 text-xs text-white hover:bg-[#0e4aa0]">{t("smartOrganize.batch.applyPrefix")}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* 结果预览 + 人工编辑 */}
+      {status === "confirming" && effectiveItems.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t("smartOrganize.preview")}</h2>
+          <div className="space-y-2">
+            {effectiveItems.map((item, i) => {
+              const edit = edits[i] ?? parseTargetPath(item.targetPath);
+              const invalid = invalidMap.get(i);
+              const isDup = dupPaths.has(item.targetPath);
+              return (
+                <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="font-medium text-slate-700">{item.fileName}</span>
+                    <span className="text-slate-400">{formatBytes(item.fileSize)}</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">{item.source === "local" ? "本地规则" : "AI 辅助"}</span>
+                    <span className={`rounded-full px-2 py-0.5 ${item.confidence >= 0.9 ? "bg-green-100 text-green-700" : item.confidence >= 0.7 ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-700"}`}>
+                      {(item.confidence * 100).toFixed(0)}%
+                    </span>
+                    {invalid ? (
+                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">{t("smartOrganize.edit.invalid")}</span>
+                    ) : isDup ? (
+                      <span className="rounded-full bg-orange-100 px-2 py-0.5 text-orange-700">{t("smartOrganize.warn.dup")}</span>
+                    ) : item.needsConfirmation ? (
+                      <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-yellow-700">待确认</span>
+                    ) : (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-700">已就绪</span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <input value={edit.level1} onChange={(e) => updateEdit(i, "level1", e.target.value)} placeholder={t("smartOrganize.edit.level1")} className="rounded border border-slate-200 px-2 py-1 text-xs" />
+                    <input value={edit.level2} onChange={(e) => updateEdit(i, "level2", e.target.value)} placeholder={t("smartOrganize.edit.level2")} className="rounded border border-slate-200 px-2 py-1 text-xs" />
+                    <input value={edit.level3} onChange={(e) => updateEdit(i, "level3", e.target.value)} placeholder={t("smartOrganize.edit.level3")} className="rounded border border-slate-200 px-2 py-1 text-xs" />
+                    <input
+                      value={keepFilename ? item.fileName : edit.fileName}
+                      onChange={(e) => updateEdit(i, "fileName", e.target.value)}
+                      disabled={keepFilename}
+                      placeholder={t("smartOrganize.edit.fileName")}
+                      className="rounded border border-slate-200 px-2 py-1 text-xs disabled:bg-slate-100 disabled:text-slate-400"
+                    />
+                  </div>
+                  {invalid && <p className="mt-1 text-xs text-red-600">{invalid}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 冲突策略 + 确认归档 */}
+      {status === "confirming" && effectiveItems.length > 0 && (
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+          <div>
+            <p className="mb-2 text-sm font-medium text-slate-600">{t("smartOrganize.conflict.label")}</p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <input type="radio" name="conflict" checked={conflictStrategy === "auto"} onChange={() => setConflictStrategy("auto")} className="accent-[#1e5eba]" />
+                {t("smartOrganize.conflict.auto")}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <input type="radio" name="conflict" checked={conflictStrategy === "manual"} onChange={() => setConflictStrategy("manual")} className="accent-[#1e5eba]" />
+                {t("smartOrganize.conflict.manual")}
+              </label>
+            </div>
+          </div>
           <button
             onClick={confirmAndPackage}
             disabled={status !== "confirming"}
-            className="rounded-xl bg-[#1e5eba] px-5 py-2.5 font-semibold text-white transition hover:bg-[#0e4aa0] disabled:opacity-60"
+            className="w-full rounded-xl bg-[#1e5eba] px-5 py-3 font-semibold text-white transition hover:bg-[#0e4aa0] disabled:opacity-60"
           >
-            确认并打包
+            {t("smartOrganize.confirmBtn")}
           </button>
         </div>
       )}
 
-      {/* 完成状态 */}
-      {status === "done" && (
-        <p className="rounded-lg bg-green-50 px-4 py-2 text-sm text-green-700">
-          ✅ {t("smartOrganize.done")}
-        </p>
+      {/* 完成 */}
+      {status === "done" && zipResult && (
+        <div className="space-y-4 rounded-xl border border-green-200 bg-green-50 p-6">
+          <p className="text-lg font-bold text-green-700">✅ {t("smartOrganize.zip.title")}</p>
+          <dl className="grid grid-cols-2 gap-3 text-sm">
+            <div><dt className="text-slate-500">{t("smartOrganize.zip.name")}</dt><dd className="font-medium text-slate-700">{zipResult.fileName}</dd></div>
+            <div><dt className="text-slate-500">{t("smartOrganize.zip.files")}</dt><dd className="font-medium text-slate-700">{zipResult.fileCount}</dd></div>
+            <div><dt className="text-slate-500">{t("smartOrganize.zip.size")}</dt><dd className="font-medium text-slate-700">{formatBytes(zipResult.zipSize)}</dd></div>
+            <div><dt className="text-slate-500">{t("smartOrganize.zip.dirs")}</dt><dd className="font-medium text-slate-700">{zipResult.dirCount}</dd></div>
+          </dl>
+          <div className="flex gap-3">
+            <button onClick={downloadNow} className="rounded-xl bg-[#1e5eba] px-5 py-2.5 font-semibold text-white hover:bg-[#0e4aa0]">{t("smartOrganize.zip.download")}</button>
+            <button onClick={reset} className="rounded-xl border border-slate-300 px-5 py-2.5 text-slate-600 hover:border-[#1e5eba] hover:text-[#1e5eba]">{t("smartOrganize.zip.reorganize")}</button>
+          </div>
+        </div>
       )}
     </div>
   );

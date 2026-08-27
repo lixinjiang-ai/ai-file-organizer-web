@@ -178,13 +178,14 @@ async function classifyBatch(
 
   for (let retry = 0; retry < opts.maxRetries; retry++) {
     try {
+      // 注意：前端【不】发送任何 API Key。AGNES_API_KEY 仅存于 Cloudflare Worker Secret，
+      // 由 Worker 在转发到 Agnes 上游时注入 Authorization 头。前端仅透传文件元信息。
       const response = await fetchWithTimeout(
         `${opts.workerUrl}/chat`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${opts.apiKey}`,
           },
           body: JSON.stringify({
             model: MODEL,

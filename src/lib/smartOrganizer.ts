@@ -111,6 +111,8 @@ export async function smartClassify(
       file,
       fileSize: file.size,
       targetPath: path,
+      localTargetPath: origResult.targetPath,
+      aiTargetPath: origResult.targetPath,
       needsConfirmation: autoConfirm ? false : origResult.confidence < 0.90,
     });
   }
@@ -152,6 +154,8 @@ export async function smartClassify(
           file: originalFile.file,
           fileSize: originalFile.file.size,
           targetPath: path,
+          localTargetPath: localResults[idx]?.targetPath,
+          aiTargetPath: aiFile.targetPath,
         });
       }
 
@@ -171,6 +175,8 @@ export async function smartClassify(
           file: originalFile.file,
           fileSize: originalFile.file.size,
           targetPath: path,
+          localTargetPath: localResults[idx]?.targetPath,
+          aiTargetPath: fallback.targetPath,
           needsConfirmation: true,
         });
       }
@@ -180,6 +186,7 @@ export async function smartClassify(
       errors.push(`AI 分类失败: ${String(err)}`);
       // 整个批次降级为待确认
       for (const { index: _index, name, file } of lowConfidence) {
+        const fallbackPath = `未分类/待确认/其他/${name.includes("/") ? name.split("/").pop()! : name}`;
         allFiles.push({
           originalPath: name,
           fileName: name.includes("/") ? name.split("/").pop()! : name,
@@ -189,7 +196,9 @@ export async function smartClassify(
           level1: "未分类",
           level2: "待确认",
           level3: "其他",
-          targetPath: `未分类/待确认/其他/${name.includes("/") ? name.split("/").pop()! : name}`,
+          targetPath: fallbackPath,
+          localTargetPath: fallbackPath,
+          aiTargetPath: fallbackPath,
           source: "ai",
           needsConfirmation: true,
           aiReason: "AI 调用异常，需人工确认",
@@ -199,6 +208,7 @@ export async function smartClassify(
   } else if (lowConfidence.length > 0 && !apiKey) {
     // 无 API Key，低置信度文件全部待确认
     for (const { name, file } of lowConfidence) {
+      const localPath = `未分类/待确认/其他/${name.includes("/") ? name.split("/").pop()! : name}`;
       allFiles.push({
         originalPath: name,
         fileName: name.includes("/") ? name.split("/").pop()! : name,
@@ -208,7 +218,9 @@ export async function smartClassify(
         level1: "未分类",
         level2: "待确认",
         level3: "其他",
-        targetPath: `未分类/待确认/其他/${name.includes("/") ? name.split("/").pop()! : name}`,
+        targetPath: localPath,
+        localTargetPath: localPath,
+        aiTargetPath: localPath,
         source: "local",
         needsConfirmation: true,
         aiReason: "未配置 AI API Key，需人工确认",

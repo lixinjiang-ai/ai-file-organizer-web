@@ -29,6 +29,10 @@ export interface ClassifiedFile {
   source: "local" | "ai";
   needsConfirmation?: boolean;
   aiReason?: string;
+  /** V2-P5: 本地规则分类产生的目标路径（用于"全部使用规则分类"） */
+  localTargetPath?: string;
+  /** V2-P5: AI 分类产生的目标路径（用于"恢复 AI 建议"） */
+  aiTargetPath?: string;
 }
 
 export interface ClassificationResult {
