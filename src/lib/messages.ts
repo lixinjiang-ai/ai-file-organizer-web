@@ -141,6 +141,12 @@ export const messages: Record<Lang, Dict> = {
     "smartOrganize.error.tooLarge": "存在超大文件（超过 100MB），请分批处理",
     "smartOrganize.error.unexpected": "发生未知错误，请重试",
     "smartOrganize.warn.dup": "检测到重复目标路径，已按策略处理",
+    "smartOrganize.aiViaWorker": "AI 分类由 Cloudflare Worker 提供（密钥仅存于服务端），调用失败会自动降级为本地规则。",
+    "smartOrganize.phase.parsing": "正在解析文件…",
+    "smartOrganize.phase.classifying": "正在分类（本地规则 + AI 辅助）…",
+    "smartOrganize.phase.processing": "正在生成 ZIP 压缩包…",
+    "smartOrganize.failedTitle": "以下文件需人工关注",
+    "smartOrganize.summary": "共处理 {total} 个文件 / 成功 {success} / AI 分类 {ai} / 规则分类 {rule} / 已归档 {archived}",
 
     "footer.note": "文件在浏览器本地处理，不会上传。",
   },

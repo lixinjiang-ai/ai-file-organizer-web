@@ -118,8 +118,10 @@ export async function smartClassify(
   }
 
   // 5. 处理低置信度文件（AI 分类）
+  // 注意：不再以"前端是否持有 apiKey"作为门控。AI 调用一律发起，由 Cloudflare Worker
+  // 侧的 Secret 完成鉴权；若 Worker 未配置密钥或上游异常，aiClassify 内部会自动降级为本地兜底。
   let aiResults: Awaited<ReturnType<typeof aiClassify>> | null = null;
-  if (apiKey && lowConfidence.length > 0) {
+  if (lowConfidence.length > 0) {
     try {
       const aiFileInputs = lowConfidence.map(({ index, name: _name }) => aiInputs[index]);
       aiResults = await aiClassify(aiFileInputs, {
@@ -184,7 +186,7 @@ export async function smartClassify(
       errors.push(...aiResults.errors);
     } catch (err) {
       errors.push(`AI 分类失败: ${String(err)}`);
-      // 整个批次降级为待确认
+      // 整个批次降级为待确认（兜底，绝不静默丢弃文件）
       for (const { index: _index, name, file } of lowConfidence) {
         const fallbackPath = `未分类/待确认/其他/${name.includes("/") ? name.split("/").pop()! : name}`;
         allFiles.push({
@@ -204,27 +206,6 @@ export async function smartClassify(
           aiReason: "AI 调用异常，需人工确认",
         });
       }
-    }
-  } else if (lowConfidence.length > 0 && !apiKey) {
-    // 无 API Key，低置信度文件全部待确认
-    for (const { name, file } of lowConfidence) {
-      const localPath = `未分类/待确认/其他/${name.includes("/") ? name.split("/").pop()! : name}`;
-      allFiles.push({
-        originalPath: name,
-        fileName: name.includes("/") ? name.split("/").pop()! : name,
-        fileSize: file.size,
-        file,
-        confidence: 0.40,
-        level1: "未分类",
-        level2: "待确认",
-        level3: "其他",
-        targetPath: localPath,
-        localTargetPath: localPath,
-        aiTargetPath: localPath,
-        source: "local",
-        needsConfirmation: true,
-        aiReason: "未配置 AI API Key，需人工确认",
-      });
     }
   }
 
@@ -258,6 +239,7 @@ export async function smartClassify(
 export async function buildOrganizeInput(
   items: DataTransferItemList | FileList,
   parseContent = true,
+  onProgress?: (current: number, total: number) => void,
 ): Promise<Array<{ name: string; file: File; content?: string }>> {
   const result: Array<{ name: string; file: File; content?: string }> = [];
 
@@ -283,7 +265,8 @@ export async function buildOrganizeInput(
   }
 
   // 解析文件内容
-  for (const file of limitedFiles) {
+  for (let idx = 0; idx < limitedFiles.length; idx++) {
+    const file = limitedFiles[idx];
     let content: string | undefined;
     if (parseContent) {
       try {
@@ -294,6 +277,7 @@ export async function buildOrganizeInput(
       }
     }
     result.push({ name: file.name, file, content });
+    onProgress?.(idx + 1, limitedFiles.length);
   }
 
   return result;

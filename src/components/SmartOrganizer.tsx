@@ -48,6 +48,7 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   const [zipResult, setZipResult] = useState<ZipResult | null>(null);
+  const [summary, setSummary] = useState<{ total: number; success: number; ai: number; rule: number; archived: number } | null>(null);
 
   // V2-P4 选项
   const [userRequirement, setUserRequirement] = useState("");
@@ -91,6 +92,30 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
     [effectiveItems],
   );
 
+  // 需人工关注的文件：降级/失败/路径非法/待确认
+  const failedItems = useMemo(() => {
+    const out: Array<{ fileName: string; reason: string }> = [];
+    effectiveItems.forEach((it, i) => {
+      const invalid = invalidMap.get(i);
+      const reason = it.aiReason || (invalid ? "路径非法" : "");
+      const needsAttention =
+        it.needsConfirmation || invalid !== undefined || /失败|异常|兜底|降级/.test(reason);
+      if (needsAttention) {
+        out.push({ fileName: it.fileName, reason: reason || "需人工确认" });
+      }
+    });
+    return out;
+  }, [effectiveItems, invalidMap]);
+
+  const phaseText =
+    status === "parsing"
+      ? t("smartOrganize.phase.parsing")
+      : status === "classifying"
+        ? t("smartOrganize.phase.classifying")
+        : status === "processing"
+          ? t("smartOrganize.phase.processing")
+          : "";
+
   const isBusy = status === "parsing" || status === "classifying";
 
   // ── 选择文件 ───────────────────────────────────────────────────────────────
@@ -104,15 +129,19 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
     setStatus("parsing");
     setError(null);
     setZipResult(null);
+    setSummary(null);
     setEdits({});
 
     try {
       const tree = buildDirectoryTree(items);
 
-      setStatus("classifying");
-      const fileMetas = await buildOrganizeInput(items, true);
+      setStatus("parsing");
+      const fileMetas = await buildOrganizeInput(items, true, (c, total) =>
+        setProgress({ current: c, total }),
+      );
       setProgress({ current: 0, total: fileMetas.length });
 
+      setStatus("classifying");
       const result = await smartClassify(fileMetas, {
         apiKey,
         aiMinConfidence: 0.70,
@@ -184,6 +213,8 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
   async function confirmAndPackage() {
     setStatus("processing");
     setError(null);
+    setSummary(null);
+    setProgress({ current: 0, total: 100 });
 
     // 0. 超大文件检查
     const oversize = effectiveItems.find((it) => it.fileSize > MAX_FILE_SIZE);
@@ -216,11 +247,12 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
       return;
     }
 
-    // 4. 生成 ZIP（复用 V1 JSZip 能力）
+    // 4. 生成 ZIP（复用 V1 JSZip 能力），实时上报进度
     try {
       const result = await buildArchiveZip(
         resolved,
         `AI文件整理助手_智能归档_${new Date().toISOString().slice(0, 10)}.zip`,
+        (pct) => setProgress({ current: pct, total: 100 }),
       );
 
       // 5. 防御性安全扫描：ZIP 内不得出现绝对/危险路径
@@ -233,6 +265,13 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
       }
 
       setZipResult(result);
+      setSummary({
+        total: effectiveItems.length,
+        success: valid.length,
+        ai: resolved.filter((r) => r.source === "ai").length,
+        rule: resolved.filter((r) => r.source === "local").length,
+        archived: resolved.length,
+      });
       setStatus("done");
     } catch (err) {
       console.error("ZIP 生成失败:", err);
@@ -255,6 +294,7 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
     setClassifiedFiles([]);
     setEdits({});
     setZipResult(null);
+    setSummary(null);
     setError(null);
     setStatus("idle");
   }
@@ -317,9 +357,7 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
 
       {/* 隐私 / API Key 提示 */}
       <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">🔒 {t("smartOrganize.privacy.note")}</div>
-      {!apiKey && (
-        <div className="rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-700">⚠️ {t("smartOrganize.noApiKey")}</div>
-      )}
+      {/* AI 分类由 Cloudflare Worker 提供，密钥不落前端；详见上方说明 */}
 
       {/* 选择文件 */}
       {status === "idle" || status === "error" ? (
@@ -346,7 +384,7 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
           <div className="h-2 overflow-hidden rounded-full bg-slate-200">
             <div className="h-full rounded-full bg-[#1e5eba] transition-all" style={{ width: `${stats.total ? (progress.current / Math.max(progress.total, 1)) * 100 : 0}%` }} />
           </div>
-          <p className="text-sm text-slate-500">{progress.current}/{progress.total}</p>
+          <p className="text-sm text-slate-500">{progress.current}/{progress.total} · {phaseText}</p>
         </div>
       )}
 
@@ -371,6 +409,18 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
               <div className="text-xs text-slate-500">{t(k as string)}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 需人工关注的文件（降级/失败/路径非法/待确认） */}
+      {status === "confirming" && failedItems.length > 0 && (
+        <div className="space-y-2 rounded-xl border border-orange-200 bg-orange-50 p-4">
+          <p className="text-sm font-medium text-orange-700">⚠️ {t("smartOrganize.failedTitle")}（{failedItems.length}）</p>
+          <ul className="max-h-40 space-y-1 overflow-auto text-xs text-orange-700">
+            {failedItems.map((f, i) => (
+              <li key={i}>• {f.fileName}：{f.reason}</li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -474,6 +524,16 @@ export function SmartOrganizer({ apiKey }: { apiKey?: string }) {
       {status === "done" && zipResult && (
         <div className="space-y-4 rounded-xl border border-green-200 bg-green-50 p-6">
           <p className="text-lg font-bold text-green-700">✅ {t("smartOrganize.zip.title")}</p>
+          {summary && (
+            <p className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-green-800">
+              {t("smartOrganize.summary")
+                .replace("{total}", String(summary.total))
+                .replace("{success}", String(summary.success))
+                .replace("{ai}", String(summary.ai))
+                .replace("{rule}", String(summary.rule))
+                .replace("{archived}", String(summary.archived))}
+            </p>
+          )}
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div><dt className="text-slate-500">{t("smartOrganize.zip.name")}</dt><dd className="font-medium text-slate-700">{zipResult.fileName}</dd></div>
             <div><dt className="text-slate-500">{t("smartOrganize.zip.files")}</dt><dd className="font-medium text-slate-700">{zipResult.fileCount}</dd></div>

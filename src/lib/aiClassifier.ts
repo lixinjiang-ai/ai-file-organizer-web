@@ -101,13 +101,11 @@ export async function aiClassify(
     },
   };
 
-  // 没有 API Key 时直接返回错误
-  if (!apiKey) {
-    result.errors.push("缺少 API Key，无法调用 AI 分类");
-    return result;
-  }
-
   if (files.length === 0) return result;
+
+  // 注意：前端【不】持有 API Key。是否具备调用资格由 Cloudflare Worker 通过自身 Secret 决定。
+  // 因此无论前端是否传入 apiKey，都直接发起调用；若 Worker 未配置密钥或上游异常，
+  // 由下方重试逻辑自动降级为本地兜底（createFallbackClassifiedFile）。
 
   // 构建允许目录列表（仅 mode=existing 时使用）
   const allowedDirectories = mode === "existing" && existingTree
@@ -133,6 +131,9 @@ export async function aiClassify(
         keepFilename: options.keepFilename || false,
       });
       result.files.push(...batchResults.matched);
+      // 关键：AI 无法归入（降级/兜底）的文件必须进入 result.fallback，
+      // 否则上层 smartClassify 的 aiResults.fallback 合并循环将拿不到它们，导致文件被静默丢弃。
+      result.fallback.push(...batchResults.fallback);
       result.stats.aiClassified += batchResults.matched.length;
       result.stats.fallbackToLocal += batchResults.fallback.length;
       result.stats.apiErrors += batchResults.errors.length;
@@ -169,7 +170,7 @@ async function classifyBatch(
     userRequirement: string;
     mode: "auto" | "existing";
     allowedDirectories: string[] | null;
-    apiKey: string;
+    apiKey?: string;
     maxRetries: number;
     keepFilename: boolean;
   },

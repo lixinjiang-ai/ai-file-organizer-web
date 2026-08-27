@@ -66,6 +66,7 @@ export function downloadBlob(blob: Blob, name: string): void {
 export async function buildArchiveZip(
   items: ClassifiedFile[],
   zipName = "AI文件整理助手_智能归档.zip",
+  onProgress?: (percent: number) => void,
 ): Promise<ZipResult> {
   if (items.length === 0) {
     throw new Error("没有可打包的文件");
@@ -90,7 +91,12 @@ export async function buildArchiveZip(
     }
   }
 
-  const blob = await zip.generateAsync({ type: "blob" });
+  const blob = await zip.generateAsync(
+    { type: "blob" },
+    onProgress
+      ? (meta) => onProgress(Math.round((meta.percent ?? 0) * 100))
+      : undefined,
+  );
 
   return {
     blob,

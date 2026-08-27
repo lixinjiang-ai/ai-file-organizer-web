@@ -9,10 +9,20 @@ import { buildDirectoryTree, extractFilePaths } from "../src/lib/directoryTree";
 import { localClassify, batchLocalClassify } from "../src/lib/classifier";
 import { validateTargetPath, validateClassificationIndex, makeUniquePath } from "../src/lib/pathValidator";
 import { smartClassify } from "../src/lib/smartOrganizer";
+import { aiClassify } from "../src/lib/aiClassifier";
 
 // 模拟 fetch
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
+
+// 默认：Worker 返回一个【合法的空结果】（results 为空），使 aiClassify 快速走 fallback 分支，
+// 避免未配置的 fetch 触发重试 sleep 导致测试超时。各用例可用 mockResolvedValueOnce 覆盖。
+mockFetch.mockResolvedValue({
+  ok: true,
+  status: 200,
+  json: async () => ({ ok: true, data: { choices: [{ message: { content: '{"results":[]}' } }] } }),
+  text: async () => "",
+});
 
 describe("目录树构建", () => {
   it("应该从简单文件列表构建目录树", () => {
@@ -128,40 +138,62 @@ describe("路径验证", () => {
   });
 });
 
-describe("AI分类器", () => {
-  it("应该调用 AI API 进行分类", async () => {
+describe("AI分类器（V2-P6：前端不再持有 key）", () => {
+  it("低置信度文件应调用 AI，且不依赖前端 apiKey", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       json: async () => ({
-        choices: [{ message: { content: '{"files":[{"index":1,"level1":"财务资料","level2":"发票","level3":"2024","confidence":0.95}]}'} }],
+        ok: true,
+        data: {
+          choices: [{
+            message: {
+              content: '{"results":[{"index":1,"level1":"其他","level2":"杂项","level3":"其他","confidence":0.8,"reason":"内容不明确"}]}',
+            },
+          }],
+        },
       }),
-      text: async () => "test",
+      text: async () => "",
     });
 
-    const file = new File(["content"], "发票.pdf");
-    const result = await smartClassify([{ name: "发票.pdf", file }], {
-      apiKey: "test-key",
-    });
+    // mystery_file.xyz 命中本地规则低置信度 → 触发 AI；不传 apiKey 也应调用
+    const file = new File(["content"], "mystery_file.xyz");
+    const result = await smartClassify([{ name: "mystery_file.xyz", file }]);
 
     expect(result.files.length).toBe(1);
-    expect(result.stats.aiClassified).toBeGreaterThanOrEqual(0);
+    expect(result.files[0].source).toBe("ai");
+    expect(result.files[0].level1).toBe("其他");
   });
 
-  it("API 429 应该触发重试", async () => {
-    // 用高置信度文件，不触发AI分类
+  it("高置信度文件不触发 AI，直接走本地规则", async () => {
     const file = new File(["content"], "发票.pdf");
-    const result = await smartClassify([{ name: "发票.pdf", file }], { apiKey: "test-key" });
-    expect(result.files.length).toBe(1);
+    const result = await smartClassify([{ name: "发票.pdf", file }]);
     expect(result.files[0].source).toBe("local");
   });
 
-  it("缺少 API Key 应该跳过AI分类", async () => {
-    const file = new File(["content"], "test.txt");
-    // 无 API Key 时，文件仍会被分类，但不会调用 AI
-    const result = await smartClassify([{ name: "test.txt", file }], { apiKey: undefined });
-    // 文件应该存在，但不一定有 AI 分类结果
-    expect(result.files.length).toBeGreaterThanOrEqual(0);
+  it("Worker 返回 500（未配置密钥）时 AI 自动降级为本地兜底", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ ok: false, error: { code: "MISSING_CONFIG" } }),
+      text: async () => "err",
+    });
+    const res = await aiClassify(
+      [{ originalPath: "m.txt", fileName: "mystery_file.xyz", extension: "xyz", fileSize: 10, contentExcerpt: "", mimeType: "text/plain" }],
+      { maxRetries: 1 },
+    );
+    // 降级：该文件进入 fallback，而非被静默丢弃
+    expect(res.stats.fallbackToLocal).toBe(1);
+    expect(res.files.length).toBe(0);
+  });
+
+  it("API 429 限流应被捕获并上报错误（不阻塞流程）", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 429, json: async () => ({}), text: async () => "rate" });
+    const res = await aiClassify(
+      [{ originalPath: "m.txt", fileName: "mystery_file.xyz", extension: "xyz", fileSize: 10, contentExcerpt: "", mimeType: "text/plain" }],
+      { maxRetries: 1 },
+    );
+    expect(res.stats.apiErrors).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -315,5 +347,33 @@ describe("V2-P4: 真实测试数据", () => {
     const result = await smartClassify([{ name: "contract.docx", file }]);
     expect(result.files.length).toBe(1);
     expect(result.files[0].level1).toBe("商务合同");
+  });
+});
+
+describe("V2-P6: 降级不应丢失文件 + 完成统计", () => {
+  it("AI 全部降级时，低置信度文件仍被保留并标记待确认", async () => {
+    // 默认 mock 返回空 results → 全部进入 fallback，但文件不丢失
+    const file = new File(["x"], "mystery_file.xyz");
+    const result = await smartClassify([{ name: "mystery_file.xyz", file }]);
+    expect(result.files.length).toBe(1);
+    expect(result.files[0].needsConfirmation).toBe(true);
+    expect(result.files[0].source).toBe("ai");
+    // 完成统计：总计1，需关注(待确认)>=1
+    expect(result.stats.total).toBe(1);
+    expect(result.stats.needsConfirmation).toBeGreaterThanOrEqual(1);
+  });
+
+  it("混合场景：高置信度走规则，低置信度走 AI 降级，统计正确", async () => {
+    const files = [
+      { name: "发票.pdf", file: new File(["x"], "发票.pdf") },
+      { name: "mystery_file.xyz", file: new File(["x"], "mystery_file.xyz") },
+    ];
+    const result = await smartClassify(files);
+    expect(result.stats.total).toBe(2);
+    expect(result.files.length).toBe(2);
+    const rule = result.files.find((f) => f.source === "local");
+    const ai = result.files.find((f) => f.source === "ai");
+    expect(rule?.level1).toBe("财务资料");
+    expect(ai).toBeTruthy();
   });
 });
