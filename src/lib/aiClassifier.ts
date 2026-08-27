@@ -148,9 +148,11 @@ export async function aiClassify(
       result.stats.apiErrors++;
     }
 
-    // 批次间指数退避
+    // 批次间礼貌性间隔：固定短延时，仅用于避免对 Worker 造成突发压力。
+    // 注意：此处绝不能随批次序号指数增长——否则大批量（如 100 文件 / 10 批次）会累积出
+    // 1+2+4+…+256 ≈ 511s 的灾难性等待。真正的指数退避只在请求失败/429 的「重试」逻辑中发生。
     if (batchIdx < batches.length - 1) {
-      await sleep(BASE_DELAY_MS * Math.pow(2, batchIdx));
+      await sleep(Math.min(BASE_DELAY_MS, 400));
     }
   }
 
