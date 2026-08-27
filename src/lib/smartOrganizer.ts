@@ -35,6 +35,8 @@ export interface SmartOrganizeOptions {
   userRequirement?: string;
   /** 现有目录树（mode='existing' 时使用） */
   existingTree?: DirectoryNode;
+  /** 是否保留原文件名不修改 */
+  keepFilename?: boolean;
 }
 
 // ── Main Entry ───────────────────────────────────────────────────────────────
@@ -53,6 +55,7 @@ export async function smartClassify(
     mode = "auto",
     userRequirement = "",
     existingTree,
+    keepFilename = false,
   } = options;
 
   const allFiles: ClassifiedFile[] = [];
@@ -123,6 +126,7 @@ export async function smartClassify(
         userRequirement,
         mode,
         existingTree,
+        keepFilename,
       });
 
       // 合并 AI 结果到主结果

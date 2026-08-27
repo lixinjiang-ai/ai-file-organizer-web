@@ -33,6 +33,8 @@ export interface AiClassifyOptions {
   apiKey?: string;
   batchSize?: number;
   maxRetries?: number;
+  /** 是否保留原文件名不修改 */
+  keepFilename?: boolean;
 }
 
 export interface AiFileInput {
@@ -128,6 +130,7 @@ export async function aiClassify(
         allowedDirectories,
         apiKey,
         maxRetries,
+        keepFilename: options.keepFilename || false,
       });
       result.files.push(...batchResults.matched);
       result.stats.aiClassified += batchResults.matched.length;
@@ -168,6 +171,7 @@ async function classifyBatch(
     allowedDirectories: string[] | null;
     apiKey: string;
     maxRetries: number;
+    keepFilename: boolean;
   },
 ): Promise<BatchResult> {
   const prompt = buildPrompt(batch, opts);
@@ -232,6 +236,7 @@ function buildPrompt(
     userRequirement: string;
     mode: "auto" | "existing";
     allowedDirectories: string[] | null;
+    keepFilename: boolean;
   },
 ): string {
   const fileSection = files
@@ -264,6 +269,7 @@ ${opts.allowedDirectories?.join("\n") || "[无可用目录]"}
 2. 每级目录名不超过50个字符
 3. 不能包含 ../ 或绝对路径
 4. 目录名应使用中文，简洁明了
+${opts.keepFilename ? "\n5. 【重要】文件名不要修改，使用原始文件名" : ""}
 `;
 
   const requirementSection = opts.userRequirement

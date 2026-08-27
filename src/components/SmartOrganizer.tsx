@@ -37,6 +37,20 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
   const [userRequirement, setUserRequirement] = useState("");
   const [mode, setMode] = useState<OrganizeMode>("auto");
   const [existingTree, setExistingTree] = useState<any>(null);
+  const [keepFilename, setKeepFilename] = useState(false);
+
+  // V2-P4: 快速模板
+  const quickTemplates = [
+    { label: "按业务类型整理", req: "按业务类型整理：发票、合同、报告等分别归类" },
+    { label: "按年份+业务整理", req: "按年份和业务类型整理，2025年发票放到 财务/发票/2025，合同按客户分类" },
+    { label: "按项目整理", req: "按项目分类，文件名中带有项目编号的归到对应项目目录" },
+    { label: "按客户整理", req: "按客户名称整理，同客户的文件放在一起" },
+    { label: "按部门整理", req: "按部门分类：财务部、人事部、运营部、技术部等" },
+  ];
+
+  function applyTemplate(req: string) {
+    setUserRequirement(req);
+  }
 
   // 手动确认状态
   const [confirmedPaths, setConfirmedPaths] = useState<Set<string>>(new Set());
@@ -71,6 +85,7 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
         mode,
         userRequirement: userRequirement.trim() || undefined,
         existingTree,
+        keepFilename,
       });
 
       setClassifiedFiles(result.files);
@@ -201,7 +216,7 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
         </div>
       </div>
 
-      {/* V2-P4: 整理要求输入框 */}
+      {/* V2-P4: 整理要求输入框 + 快速模板 */}
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <label className="mb-2 block text-sm font-medium text-slate-600">
           {t("smartOrganize.requirement.label")}
@@ -214,6 +229,38 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[#1e5eba] focus:outline-none"
         />
         <p className="mt-1 text-xs text-slate-400">{t("smartOrganize.requirement.hint")}</p>
+
+        {/* V2-P4: 快速模板按钮 */}
+        <div className="mt-3">
+          <p className="mb-2 text-xs font-medium text-slate-500">{t("smartOrganize.templates.label")}</p>
+          <div className="flex flex-wrap gap-2">
+            {quickTemplates.map((tpl) => (
+              <button
+                key={tpl.label}
+                onClick={() => applyTemplate(tpl.req)}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:border-[#1e5eba] hover:text-[#1e5eba] transition"
+              >
+                {tpl.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* V2-P4: 保留原文件名选项 */}
+        <div className="mt-3 flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="keepFilename"
+            checked={keepFilename}
+            onChange={(e) => setKeepFilename(e.target.checked)}
+            className="h-4 w-4 accent-[#1e5eba]"
+          />
+          <label htmlFor="keepFilename" className="text-sm text-slate-600">
+            {t("smartOrganize.keepFilename")}
+          </label>
+        </div>
+
+        <p className="mt-2 text-xs text-slate-400">{t("smartOrganize.priority.note")}</p>
       </div>
 
       {/* 隐私提示 */}
