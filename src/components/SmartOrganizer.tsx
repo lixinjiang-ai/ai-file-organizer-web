@@ -1,7 +1,12 @@
 /**
- * 四级目录智能归档 - UI 组件
+ * V2-P4: 四级目录智能归档 - UI 组件
  *
- * 提供目录选择、分类预览、手动确认、ZIP打包功能
+ * 支持：
+ * 1. 可选"整理要求"输入框
+ * 2. 两种目录模式（A=自动/ B=现有结构）
+ * 3. AI 隐私提示
+ * 4. 分类结果预览 + 人工确认
+ * 5. ZIP 打包下载
  */
 
 "use client";
@@ -9,8 +14,8 @@
 import { useRef, useState } from "react";
 import JSZip from "jszip";
 import { useI18n } from "@/lib/i18n";
-import { smartClassify } from "@/lib/smartOrganizer";
-import { buildDirectoryTree, extractFilePaths } from "@/lib/directoryTree";
+import { smartClassify, type OrganizeMode, buildOrganizeInput } from "@/lib/smartOrganizer";
+import { buildDirectoryTree } from "@/lib/directoryTree";
 import type { ClassifiedFile } from "@/lib/directoryTree";
 
 type Status = "idle" | "parsing" | "classifying" | "confirming" | "processing" | "done" | "error";
@@ -28,6 +33,11 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // V2-P4: 整理要求和目录模式
+  const [userRequirement, setUserRequirement] = useState("");
+  const [mode, setMode] = useState<OrganizeMode>("auto");
+  const [existingTree, setExistingTree] = useState<any>(null);
+
   // 手动确认状态
   const [confirmedPaths, setConfirmedPaths] = useState<Set<string>>(new Set());
 
@@ -42,15 +52,13 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
     setError(null);
 
     try {
-      // 1. 构建目录树
+      // 1. 构建目录树（用于 mode=existing）
       const tree = buildDirectoryTree(items);
-      const filePaths = extractFilePaths(tree);
+      setExistingTree(tree);
 
-      // 2. 读取文件元数据（不读取内容，只获取文件名和大小）
-      const fileMetas: Array<{ name: string; file: File }> = [];
-      for (let i = 0; i < items.length; i++) {
-        fileMetas.push({ name: items[i].name, file: items[i] });
-      }
+      // 2. 解析文件（提取文本内容）
+      setStatus("parsing");
+      const fileMetas = await buildOrganizeInput(items, true);
 
       // 3. 智能分类
       setStatus("classifying");
@@ -60,6 +68,9 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
         apiKey,
         aiMinConfidence: 0.70,
         autoConfirm: false,
+        mode,
+        userRequirement: userRequirement.trim() || undefined,
+        existingTree,
       });
 
       setClassifiedFiles(result.files);
@@ -101,7 +112,6 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
       const total = classifiedFiles.length;
 
       for (const item of classifiedFiles) {
-        // 跳过未确认的文件（如果需要确认）
         if (item.needsConfirmation && !confirmedPaths.has(item.targetPath)) {
           continue;
         }
@@ -158,6 +168,66 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("smartOrganize.title")}</h1>
 
+      {/* V2-P4: 目录模式选择 */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <p className="mb-2 text-sm font-medium text-slate-600">{t("smartOrganize.mode.label")}</p>
+        <div className="flex gap-4">
+          <label className="flex cursor-pointer items-start gap-2">
+            <input
+              type="radio"
+              name="organizeMode"
+              checked = {mode === "auto"}
+              onChange={() => setMode("auto")}
+              className="mt-0.5 accent-[#1e5eba]"
+            />
+            <div>
+              <span className="text-sm font-medium text-slate-700">{t("smartOrganize.mode.auto")}</span>
+              <p className="text-xs text-slate-400">AI 根据内容自动创建目录结构</p>
+            </div>
+          </label>
+          <label className="flex cursor-pointer items-start gap-2">
+            <input
+              type="radio"
+              name="organizeMode"
+              checked={mode === "existing"}
+              onChange={() => setMode("existing")}
+              className="mt-0.5 accent-[#1e5eba]"
+            />
+            <div>
+              <span className="text-sm font-medium text-slate-700">{t("smartOrganize.mode.existing")}</span>
+              <p className="text-xs text-slate-400">AI 只能选择你已有的目录节点</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* V2-P4: 整理要求输入框 */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <label className="mb-2 block text-sm font-medium text-slate-600">
+          {t("smartOrganize.requirement.label")}
+        </label>
+        <textarea
+          value={userRequirement}
+          onChange={(e) => setUserRequirement(e.target.value)}
+          placeholder={t("smartOrganize.requirement.placeholder")}
+          rows={3}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[#1e5eba] focus:outline-none"
+        />
+        <p className="mt-1 text-xs text-slate-400">{t("smartOrganize.requirement.hint")}</p>
+      </div>
+
+      {/* 隐私提示 */}
+      <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">
+        🔒 {t("smartOrganize.privacy.note")}
+      </div>
+
+      {/* API Key 提示 */}
+      {!apiKey && (
+        <div className="rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
+          ⚠️ {t("smartOrganize.noApiKey")}
+        </div>
+      )}
+
       {/* 文件夹选择 */}
       <div
         onClick={() => inputRef.current?.click()}
@@ -188,7 +258,7 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
           <div className="h-2 overflow-hidden rounded-full bg-slate-200">
             <div
               className="h-full rounded-full bg-[#1e5eba] transition-all"
-              style={{ width: `${stats ? (progress.current / progress.total) * 100 : 0}%` }}
+              style={{ width: `${stats ? (progress.current / Math.max(progress.total, 1)) * 100 : 0}%` }}
             />
           </div>
           <p className="text-sm text-slate-500">
@@ -216,7 +286,7 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
 
           <div className="max-h-96 overflow-y-auto rounded-xl border border-slate-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50">
+              <thead className="bg-slate-50 sticky top-0">
                 <tr>
                   <th className="px-4 py-2 text-left">文件</th>
                   <th className="px-4 py-2 text-left">目录</th>
@@ -229,7 +299,7 @@ export function SmartOrganizer({ apiKey }: SmartOrganizerProps) {
                 {classifiedFiles.map((item, idx) => (
                   <tr key={idx} className="hover:bg-slate-50">
                     <td className="px-4 py-2 font-medium text-slate-700">{item.fileName}</td>
-                    <td className="px-4 py-2 text-slate-500">{item.targetPath}</td>
+                    <td className="px-4 py-2 text-slate-500 text-xs">{item.targetPath}</td>
                     <td className="px-4 py-2 text-center">
                       <span
                         className={`inline-block rounded-full px-2 py-0.5 text-xs ${

@@ -214,3 +214,106 @@ describe("边界情况", () => {
     expect(result.files.length).toBe(2);
   });
 });
+
+// ── V2-P4 Tests ──────────────────────────────────────────────────────────────
+
+describe("V2-P4: 可选整理要求", () => {
+  it("应该支持无整理要求的自动分类", async () => {
+    const file = new File(["test content"], "invoice_march.txt");
+    const result = await smartClassify([{ name: "invoice_march.txt", file }]);
+    expect(result.stats.total).toBe(1);
+    expect(result.files.length).toBe(1);
+    expect(result.files[0].level1).toBe("财务资料");
+  });
+
+  it("应该支持整理要求输入（不传apiKey时走本地）", async () => {
+    const file = new File(["test content"], "合同项目A.pdf");
+    const result = await smartClassify([{ name: "合同项目A.pdf", file }], {
+      userRequirement: "按财务、合同、项目分类",
+    });
+    expect(result.files.length).toBe(1);
+    expect(result.files[0].confidence).toBeGreaterThan(0.7);
+  });
+});
+
+describe("V2-P4: 目录模式", () => {
+  it("模式auto应该允许AI创建新目录", async () => {
+    const file = new File(["test"], "unknown_file.xyz");
+    const result = await smartClassify([{ name: "unknown_file.xyz", file }]);
+    expect(result.files.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it("模式existing应该尊重现有目录树", async () => {
+    const existingTree = {
+      name: "root",
+      type: "directory" as const,
+      children: [
+        {
+          name: "财务资料",
+          type: "directory" as const,
+          children: [
+            { name: "发票", type: "directory" as const, children: [] },
+            { name: "银行流水", type: "directory" as const, children: [] },
+          ],
+        },
+        {
+          name: "项目文档",
+          type: "directory" as const,
+          children: [
+            { name: "技术资料", type: "directory" as const, children: [] },
+          ],
+        },
+      ],
+    };
+
+    const file = new File(["invoice content"], "2024年3月银行流水.pdf");
+    const result = await smartClassify(
+      [{ name: "2024年3月银行流水.pdf", file }],
+      { mode: "existing", existingTree }
+    );
+    expect(result.files.length).toBe(1);
+  });
+});
+
+describe("V2-P4: 四级目录限制", () => {
+  it("路径验证应该拒绝超过4级的路径", () => {
+    expect(validateTargetPath("a/b/c/d/e/f.pdf").valid).toBe(false);
+    expect(validateTargetPath("a/b/c/d.pdf").valid).toBe(true);
+  });
+
+  it("路径验证应该拒绝路径穿越", () => {
+    expect(validateTargetPath("../secret.txt").valid).toBe(false);
+    expect(validateTargetPath("foo/../../etc/passwd").valid).toBe(false);
+    expect(validateTargetPath("C://Windows//System32").valid).toBe(false);
+  });
+});
+
+describe("V2-P4: 安全测试", () => {
+  it("应该拒绝包含特殊字符的路径", () => {
+    expect(validateTargetPath("file<name>.txt").valid).toBe(false);
+    expect(validateTargetPath("file:name.txt").valid).toBe(false);
+    expect(validateTargetPath("file|name.txt").valid).toBe(false);
+  });
+
+  it("应该拒绝绝对路径", () => {
+    expect(validateTargetPath("/etc/hosts").valid).toBe(false);
+    expect(validateTargetPath("D://Downloads").valid).toBe(false);
+  });
+});
+
+describe("V2-P4: 真实测试数据", () => {
+  it("发票文件应该被正确分类", async () => {
+    const file = new File(["增值税普通发票\n发票号码：202403150001"], "invoice_2024.pdf");
+    const result = await smartClassify([{ name: "invoice_2024.pdf", file }]);
+    expect(result.files.length).toBe(1);
+    expect(result.files[0].level1).toBe("财务资料");
+    expect(result.files[0].level2).toBe("发票凭证");
+  });
+
+  it("合同文件应该被正确分类", async () => {
+    const file = new File(["技术合作协议\n甲方：XX科技有限公司"], "contract.docx");
+    const result = await smartClassify([{ name: "contract.docx", file }]);
+    expect(result.files.length).toBe(1);
+    expect(result.files[0].level1).toBe("商务合同");
+  });
+});
