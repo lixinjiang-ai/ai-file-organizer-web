@@ -37,6 +37,8 @@ export interface SmartOrganizeOptions {
   existingTree?: DirectoryNode;
   /** 是否保留原文件名不修改 */
   keepFilename?: boolean;
+  /** V2-P7: AI 分类进度回调（done/total 为已处理的低置信度文件数） */
+  onClassifyProgress?: (done: number, total: number) => void;
 }
 
 // ── Main Entry ───────────────────────────────────────────────────────────────
@@ -56,6 +58,7 @@ export async function smartClassify(
     userRequirement = "",
     existingTree,
     keepFilename = false,
+    onClassifyProgress,
   } = options;
 
   const allFiles: ClassifiedFile[] = [];
@@ -131,6 +134,7 @@ export async function smartClassify(
         mode,
         existingTree,
         keepFilename,
+        onProgress: onClassifyProgress,
       });
 
       // 合并 AI 结果到主结果

@@ -149,5 +149,39 @@ export const messages: Record<Lang, Dict> = {
     "smartOrganize.summary": "共处理 {total} 个文件 / 成功 {success} / AI 分类 {ai} / 规则分类 {rule} / 已归档 {archived}",
 
     "footer.note": "文件在浏览器本地处理，不会上传。",
+
+    // V2-P7: 最后一公里 UX
+    "smartOrganize.guide.title": "第一次用？四步搞定",
+    "smartOrganize.guide.s1": "选择文件夹",
+    "smartOrganize.guide.s1d": "选一个装着乱文件的文件夹",
+    "smartOrganize.guide.s2": "AI 自动分类",
+    "smartOrganize.guide.s2d": "按内容自动归入对应目录",
+    "smartOrganize.guide.s3": "检查并调整",
+    "smartOrganize.guide.s3d": "可手动改目录，低置信度会标黄",
+    "smartOrganize.guide.s4": "一键下载 ZIP",
+    "smartOrganize.guide.s4d": "下载整理好的压缩包",
+    "smartOrganize.guide.dismiss": "我知道了",
+
+    "smartOrganize.tree.title": "目录结构（点击筛选）",
+    "smartOrganize.tree.all": "全部文件",
+    "smartOrganize.tree.filesSuffix": "个文件",
+
+    "smartOrganize.aiFail.title": "部分文件 AI 分类未能完成",
+    "smartOrganize.aiFail.desc": "Agnes 暂时不可用或响应异常，已自动将 {n} 个文件改用本地规则/待确认分类（见下方“需人工关注”）。其余文件不受影响，整理任务继续。",
+
+    "smartOrganize.lowConf.label": "低置信度 · AI 不太确定，建议看一眼",
+    "smartOrganize.attention.low": "低置信度",
+
+    "smartOrganize.zip.nextStep": "ZIP 已下载到你的设备。解压后按目录归档即可，原始文件不会被修改。",
+    "smartOrganize.zip.again": "重新下载",
+    "smartOrganize.zip.afterDone": "下载完成后可“重新整理”再跑一遍",
+
+    "smartOrganize.phase.requesting": "正在请求 AI 分类（{done}/{total}）…",
+    "smartOrganize.progress.parsing": "{done}/{total} 个文件已解析",
+    "smartOrganize.progress.classifying": "{done}/{total} 个文件已完成 AI 判断",
+    "smartOrganize.progress.processing": "ZIP 生成 {done}%",
+    "smartOrganize.result.filter": "当前目录",
+    "smartOrganize.result.viewAll": "查看全部",
+    "smartOrganize.result.count": "共 {n} 个文件",
   },
 };

@@ -35,6 +35,8 @@ export interface AiClassifyOptions {
   maxRetries?: number;
   /** 是否保留原文件名不修改 */
   keepFilename?: boolean;
+  /** V2-P7: 批次处理进度回调（done/total 为已处理的输入文件数） */
+  onProgress?: (done: number, total: number) => void;
 }
 
 export interface AiFileInput {
@@ -86,6 +88,7 @@ export async function aiClassify(
     apiKey,
     batchSize = BATCH_SIZE,
     maxRetries = MAX_RETRIES,
+    onProgress,
   } = options;
 
   const result: AiClassificationResult = {
@@ -121,6 +124,8 @@ export async function aiClassify(
   for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
     const batch = batches[batchIdx];
     try {
+      // V2-P7: 批次进度上报（仅用于 UI 进度展示，不影响分类结果）
+      onProgress?.(batchIdx * batchSize + batch.length, files.length);
       const batchResults = await classifyBatch(batch, {
         workerUrl,
         userRequirement,
