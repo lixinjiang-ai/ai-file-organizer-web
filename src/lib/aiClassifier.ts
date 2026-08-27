@@ -146,6 +146,12 @@ export async function aiClassify(
     } catch (err) {
       result.errors.push(`批次 ${batchIdx + 1} 分类失败: ${String(err)}`);
       result.stats.apiErrors++;
+      // 兜底：批次整体失败时，将整批文件降级为本地兜底，绝不静默丢弃文件。
+      // classifyBatch 在「整批 429 重试耗尽」时会 throw（而非返回 fallback），
+      // 若此处不兜底，这些文件会在 smartClassify 的 aiResults.fallback 合并循环
+      // 中被静默丢弃（线上验收曾观察到 13→11、100→64 的丢文件）。
+      result.fallback.push(...batch.map((f) => createFallbackClassifiedFile(f)));
+      result.stats.fallbackToLocal += batch.length;
     }
 
     // 批次间礼貌性间隔：固定短延时，仅用于避免对 Worker 造成突发压力。
@@ -186,7 +192,7 @@ async function classifyBatch(
 
   for (let retry = 0; retry < opts.maxRetries; retry++) {
     try {
-      // 注意：前端【不】发送任何 API Key。AGNES_API_KEY 仅存于 Cloudflare Worker Secret，
+      // 注意：前端【不】发送任何 API Key。该密钥仅存于 Cloudflare Worker Secret，
       // 由 Worker 在转发到 Agnes 上游时注入 Authorization 头。前端仅透传文件元信息。
       const response = await fetchWithTimeout(
         `${opts.workerUrl}/chat`,

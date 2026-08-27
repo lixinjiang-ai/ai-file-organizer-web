@@ -86,7 +86,7 @@ export const messages: Record<Lang, Dict> = {
     "smartOrganize.mode.auto": "A. 自动智能整理 - AI 根据内容自动创建合理目录",
     "smartOrganize.mode.existing": "B. 按现有结构整理 - AI 只能选择已有目录节点",
     "smartOrganize.privacy.note": "AI 归档会将用于判断的【文件名】和【部分文本内容】发送至 AI 服务。原始文件不会上传。",
-    "smartOrganize.noApiKey": "未配置 AI Key，将使用本地规则分类。如需 AI 辅助请配置 AGNES_API_KEY。",
+    "smartOrganize.noApiKey": "未配置 AI Key，将使用本地规则分类。如需 AI 辅助请在 Cloudflare Worker 侧配置密钥。",
     "smartOrganize.filesLimit": "最多处理 200 个文件",
 
     "smartOrganize.stats.title": "归档统计",
